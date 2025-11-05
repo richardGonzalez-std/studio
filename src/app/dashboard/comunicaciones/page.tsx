@@ -24,29 +24,29 @@ import {
   ];
   
   const directMessages = [
-    { id: "U01", name: "Eduardo Martins", avatar: "https://picsum.photos/seed/avatar6/40/40", online: true },
-    { id: "U02", name: "Fernanda Lima", avatar: "https://picsum.photos/seed/avatar7/40/40", online: false },
-    { id: "U03", name: "Gabriel Rocha", avatar: "https://picsum.photos/seed/avatar8/40/40", online: true },
+    { id: "U01", name: "Jorge Ortiz", avatar: "https://picsum.photos/seed/staff1/40/40", online: true },
+    { id: "U02", name: "Raizza Mildrey", avatar: "https://picsum.photos/seed/staff2/40/40", online: false },
+    { id: "U03", name: "Freddy Bravo", avatar: "https://picsum.photos/seed/staff3/40/40", online: true },
   ];
   
   // Datos de ejemplo para los mensajes en el chat activo.
   const activeChatMessages = [
     {
-      sender: "Eduardo Martins",
-      avatar: "https://picsum.photos/seed/avatar6/40/40",
-      text: "Hola a todos, recuerden la reunión de equipo mañana a las 10 AM.",
+      sender: "Jorge Ortiz",
+      avatar: "https://picsum.photos/seed/staff1/40/40",
+      text: "Hola Raizza, ¿cómo va el amparo CAS001? El cliente preguntó por el estado.",
       time: "10:30 AM",
     },
     {
-      sender: "Admin",
-      avatar: "https://picsum.photos/seed/admin-avatar/40/40",
-      text: "¡Entendido! Prepararé el resumen de casos para la reunión.",
+      sender: "Raizza Mildrey",
+      avatar: "https://picsum.photos/seed/staff2/40/40",
+      text: "¡Hola Jorge! Ya tenemos la sentencia a favor. Estoy preparando los documentos para la ejecución EJC001. Deberían estar listos para enviar al punto autorizado mañana.",
       time: "10:32 AM",
     },
     {
-      sender: "Fernanda Lima",
-      avatar: "https://picsum.photos/seed/avatar7/40/40",
-      text: "Perfecto, ¿necesitan que lleve algo específico sobre el caso CAS002?",
+      sender: "Jorge Ortiz",
+      avatar: "https://picsum.photos/seed/staff1/40/40",
+      text: "Excelente noticia. Por favor, coordina con mensajería para la ruta de recogida en cuanto estén firmados.",
       time: "10:35 AM",
     },
   ];
@@ -121,11 +121,11 @@ import {
             {/* Encabezado del chat activo */}
             <div className="flex items-center gap-3 border-b pb-4">
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src="https://picsum.photos/seed/avatar6/40/40" />
-                    <AvatarFallback>EM</AvatarFallback>
+                    <AvatarImage src="https://picsum.photos/seed/staff2/40/40" />
+                    <AvatarFallback>RM</AvatarFallback>
                 </Avatar>
                 <div>
-                    <h2 className="text-lg font-semibold">Eduardo Martins</h2>
+                    <h2 className="text-lg font-semibold">Raizza Mildrey</h2>
                     <p className="text-sm text-muted-foreground">En línea</p>
                 </div>
             </div>
@@ -136,23 +136,23 @@ import {
                 <div
                   key={index}
                   className={`flex items-start gap-3 ${
-                    msg.sender === "Admin" ? "justify-end" : ""
+                    msg.sender === "Raizza Mildrey" ? "justify-end" : ""
                   }`}
                 >
-                  {msg.sender !== "Admin" && (
+                  {msg.sender !== "Raizza Mildrey" && (
                     <Avatar className="h-9 w-9 border">
                       <AvatarImage src={msg.avatar} />
                       <AvatarFallback>{msg.sender.charAt(0)}</AvatarFallback>
                     </Avatar>
                   )}
-                  <div className={`flex flex-col ${msg.sender === "Admin" ? "items-end" : "items-start"}`}>
-                    <div className={`max-w-md rounded-lg px-4 py-2 ${msg.sender === "Admin" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                  <div className={`flex flex-col ${msg.sender === "Raizza Mildrey" ? "items-end" : "items-start"}`}>
+                    <div className={`max-w-md rounded-lg px-4 py-2 ${msg.sender === "Raizza Mildrey" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                         <p className="font-semibold text-sm">{msg.sender}</p>
                         <p className="text-sm">{msg.text}</p>
                     </div>
                     <span className="text-xs text-muted-foreground mt-1">{msg.time}</span>
                   </div>
-                  {msg.sender === "Admin" && (
+                  {msg.sender === "Raizza Mildrey" && (
                     <Avatar className="h-9 w-9 border">
                       <AvatarImage src={msg.avatar} />
                       <AvatarFallback>{msg.sender.charAt(0)}</AvatarFallback>
