@@ -1,29 +1,56 @@
-// Importamos los componentes de tarjeta (Card) para la interfaz de usuario.
+// Importamos los componentes de UI que necesitamos.
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-  } from "@/components/ui/card";
-  
-  // Esta es la función principal que define la página de Configuración.
-  export default function SettingsPage() {
-    // La función devuelve el contenido de la página.
-    return (
-      <div className="space-y-6">
-        <Card>
-          {/* El encabezado de la tarjeta muestra el título y la descripción de la página. */}
-          <CardHeader>
-            <CardTitle>Configuración</CardTitle>
-            <CardDescription>Gestiona la configuración de tu aplicación aquí.</CardDescription>
-          </CardHeader>
-          {/* El contenido de la tarjeta, por ahora, solo muestra un mensaje. */}
-          <CardContent>
-            <p>La página de configuración está en construcción.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+// Esta es la función principal que define la página de Configuración.
+export default function SettingsPage() {
+  // La función devuelve el contenido de la página.
+  return (
+    <div className="space-y-6">
+      <Card>
+        {/* El encabezado de la tarjeta muestra el título y la descripción de la página. */}
+        <CardHeader>
+          <CardTitle>Configuración de API</CardTitle>
+          <CardDescription>
+            Gestiona la conexión con el sistema ERP de DSF.
+          </CardDescription>
+        </CardHeader>
+        {/* El contenido de la tarjeta ahora tiene un formulario para la configuración de la API. */}
+        <CardContent>
+          <form className="space-y-4 max-w-md">
+            <div className="space-y-2">
+              <Label htmlFor="api-url">URL del ERP</Label>
+              <Input
+                id="api-url"
+                placeholder="https://erp.dsf.cr/api"
+                defaultValue="https://erp.dsf.cr"
+                disabled
+              />
+               <p className="text-xs text-muted-foreground">La URL base del ERP no se puede modificar.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-key">Clave de API (API Key)</Label>
+              <Input id="api-key" type="password" placeholder="Ingresa tu clave de API" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-secret">Secreto de API (API Secret)</Label>
+              <Input id="api-secret" type="password" placeholder="Ingresa tu secreto de API" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline">Probar Conexión</Button>
+                <Button type="submit">Guardar Cambios</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

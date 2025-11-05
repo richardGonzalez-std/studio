@@ -10,7 +10,7 @@ export function Logo() {
     <div className="flex items-center gap-3">
       {/* 
         Usamos el componente Image para mostrar el logo.
-        - src: La ruta a la imagen del logo.
+        - src: La ruta a la imagen del logo. Debe estar en la carpeta 'public'.
         - width y height: Las dimensiones de la imagen.
         - alt: Texto alternativo que describe la imagen para accesibilidad.
       */}

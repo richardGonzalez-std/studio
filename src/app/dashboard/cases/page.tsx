@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 // Importamos los datos de los casos desde nuestro archivo de datos de ejemplo.
-import { cases } from "@/lib/data";
+import { cases, Case } from "@/lib/data";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+
 
 // Esta función determina el color de la insignia (Badge) según el estado del caso.
 const getStatusVariant = (status: string) => {
@@ -105,63 +108,69 @@ export default function CasesPage() {
 
 // Este es un componente reutilizable para mostrar la tabla de casos.
 // Recibe la lista de casos a mostrar como una propiedad (props).
-function CasesTable({ cases }: { cases: typeof import('@/lib/data').cases }) {
+function CasesTable({ cases }: { cases: Case[] }) {
     return (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Título del Caso</TableHead>
-              <TableHead className="hidden md:table-cell">Cliente</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="hidden lg:table-cell">Ciclo de Vida</TableHead>
-              <TableHead className="hidden md:table-cell">Última Actualización</TableHead>
-              <TableHead>
-                <span className="sr-only">Acciones</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {/* Mapeamos cada caso a una fila de la tabla. */}
-            {cases.map((caseItem) => (
-              <TableRow key={caseItem.id}>
-                <TableCell>
-                  <div className="font-medium">{caseItem.title}</div>
-                  <div className="text-sm text-muted-foreground">{caseItem.id}</div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">{caseItem.clientName}</TableCell>
-                <TableCell>
-                  {/* Usamos la función getStatusVariant para darle color al estado. */}
-                  <Badge variant={getStatusVariant(caseItem.status)}>{caseItem.status}</Badge>
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                    {/* Mostramos una barra de progreso para el ciclo de vida de la oportunidad. */}
-                    <div className="flex items-center gap-2">
-                        <Progress value={caseItem.opportunityLifecycle} aria-label={`${caseItem.opportunityLifecycle}% completado`} className="h-2"/>
-                        <span className="text-xs text-muted-foreground">{caseItem.opportunityLifecycle}%</span>
-                    </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">{caseItem.lastUpdate}</TableCell>
-                <TableCell>
-                  {/* Menú de acciones para cada caso. */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Alternar menú</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
-                      <DropdownMenuItem>Actualizar Estado</DropdownMenuItem>
-                      <DropdownMenuItem>Gestionar Documentos</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="relative w-full overflow-auto">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Título del Caso</TableHead>
+                <TableHead className="hidden md:table-cell">Cliente</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="hidden lg:table-cell">Ciclo de Vida</TableHead>
+                <TableHead className="hidden md:table-cell">Última Actualización</TableHead>
+                <TableHead>
+                    <span className="sr-only">Acciones</span>
+                </TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {/* Mapeamos cada caso a una fila de la tabla. */}
+                {cases.map((caseItem) => (
+                <TableRow key={caseItem.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <Link href={`/dashboard/cases/${caseItem.id.toLowerCase()}`} className="font-medium hover:underline">
+                        {caseItem.title}
+                      </Link>
+                      <div className="text-sm text-muted-foreground">{caseItem.id}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{caseItem.clientName}</TableCell>
+                    <TableCell>
+                    {/* Usamos la función getStatusVariant para darle color al estado. */}
+                    <Badge variant={getStatusVariant(caseItem.status)}>{caseItem.status}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                        {/* Mostramos una barra de progreso para el ciclo de vida de la oportunidad. */}
+                        <div className="flex items-center gap-2">
+                            <Progress value={caseItem.opportunityLifecycle} aria-label={`${caseItem.opportunityLifecycle}% completado`} className="h-2"/>
+                            <span className="text-xs text-muted-foreground">{caseItem.opportunityLifecycle}%</span>
+                        </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{caseItem.lastUpdate}</TableCell>
+                    <TableCell>
+                    {/* Menú de acciones para cada caso. */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Alternar menú</span>
+                        </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/cases/${caseItem.id.toLowerCase()}`}>Ver Detalles</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Actualizar Estado</DropdownMenuItem>
+                        <DropdownMenuItem>Gestionar Documentos</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+                ))}
+            </TableBody>
+            </Table>
+        </div>
     );
 }
