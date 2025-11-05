@@ -10,12 +10,12 @@ export function Logo() {
     <div className="flex items-center gap-3">
       {/* 
         Usamos el componente Image para mostrar el logo.
-        - src: La ruta a la imagen del logo. Debe estar en la carpeta 'public'.
+        - src: La ruta a la imagen del logo. Ahora apunta a una URL externa.
         - width y height: Las dimensiones de la imagen.
         - alt: Texto alternativo que describe la imagen para accesibilidad.
       */}
       <Image 
-        src="/logo.png" 
+        src="https://www.dsf.cr/assets/img/demo/logo.png" 
         width={32} 
         height={32} 
         alt="Logo de Fundación Derecho Sin Fronteras" 
