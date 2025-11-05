@@ -59,7 +59,7 @@ import {
   // Esta es la página de detalle de una ejecución específica.
   export default function EjecucionDetailPage({ params }: { params: { id: string } }) {
     // Buscamos la ejecución específica en nuestros datos usando el 'id' de la URL.
-    const caseItem = cases.find((c) => c.id === params.id.toUpperCase());
+    const caseItem = cases.find((c) => c.id.toLowerCase() === params.id.toLowerCase());
   
     // Si no se encuentra, mostramos un mensaje.
     if (!caseItem) {

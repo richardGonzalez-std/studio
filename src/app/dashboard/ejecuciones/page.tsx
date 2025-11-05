@@ -51,7 +51,7 @@ const getStatusVariant = (status: string) => {
 // Esta es la función principal que define la página de Ejecuciones.
 export default function EjecucionesPage() {
   // Filtramos los datos para obtener solo las ejecuciones (identificadas por tener un amparoId).
-  const ejecuciones = cases.filter(c => c.id.startsWith('EJC'));
+  const ejecuciones = cases.filter(c => c.id.endsWith('-CA'));
   // La página utiliza un sistema de pestañas (Tabs), aunque aquí solo mostraremos todas las ejecuciones.
   return (
     <Tabs defaultValue="all">
