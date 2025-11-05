@@ -97,19 +97,19 @@ export const volunteers: Volunteer[] = [
 
 // Lista de puntos autorizados de ejemplo.
 export const branches: Branch[] = [
-    { id: 'BRH001', name: 'Oficina Central', address: 'San José, San José', manager: 'Ricardo Gomes' },
-    { id: 'BRH002', name: 'Punto Autorizado Heredia', address: 'Heredia, Santo Domingo', manager: 'Helena Souza' },
-    { id: 'BRH003', name: 'Punto Autorizado Cartago', address: 'Cartago, La Unión', manager: 'Mario Vega' },
-    { id: 'BRH004', name: 'Punto Autorizado Alajuela', address: 'Alajuela, San Ramón', manager: 'Lucía Montero' },
-    { id: 'BRH005', name: 'Punto Autorizado Guanacaste', address: 'Guanacaste, Liberia', manager: 'Jorge Solís' },
+  { id: 'BRH001', name: 'Oficina Central', address: 'San José, San José', manager: 'Ricardo Gomes' },
+  { id: 'BRH002', name: 'Punto Autorizado Heredia', address: 'Heredia, Santo Domingo', manager: 'Helena Souza' },
+  { id: 'BRH003', name: 'Punto Autorizado Cartago', address: 'Cartago, La Unión', manager: 'Mario Vega' },
+  { id: 'BRH004', name: 'Punto Autorizado Alajuela', address: 'Alajuela, San Ramón', manager: 'Lucía Montero' },
+  { id: 'BRH005', name: 'Punto Autorizado Guanacaste', address: 'Guanacaste, Liberia', manager: 'Jorge Solís' },
 ];
 
 // Lista de casos de ejemplo.
 export const cases: Case[] = [
   { id: 'CAS001', title: 'Lista de espera por cirugía vs. CCSS', clientName: 'Ana Silva', assignedTo: 'Eduardo Martins', status: 'Sentencia', lastUpdate: '2023-11-01', category: 'Contenciosa', specialty: 'Cirugía General', opportunityLifecycle: 90 },
   { id: 'CAS002', title: 'Cita a largo plazo para radiología vs. CCSS', clientName: 'John Doe', assignedTo: 'Fernanda Lima', status: 'Abierto', lastUpdate: '2023-10-30', category: 'No Contenciosa', specialty: 'Radiología', opportunityLifecycle: 25 },
-  { id: 'CAS003', title: 'Falta de medicamentos vs. CCSS', clientName: 'Jane Smith', assignedTo: 'Eduardo Martins', status: 'Cerrado', lastUpdate: '2023-09-15', category: 'Contenciosa', specialty: 'Farmacia', opportunityLifecycle: 100 },
-  { id: 'CAS004', title: 'Lista de espera para cardiología vs. CCSS', clientName: 'Bruno Costa', assignedTo: 'Gabriel Rocha', status: 'Sentencia', lastUpdate: '2023-11-05', category: 'No Contenciosa', specialty: 'Cardiología', opportunityLifecycle: 95 },
+  { id: 'CAS003', title: 'Atraso en pago de salarios vs. MEP', clientName: 'Jane Smith', assignedTo: 'Eduardo Martins', status: 'En Progreso', lastUpdate: '2023-09-15', category: 'Contenciosa', specialty: 'Recursos Humanos', opportunityLifecycle: 50 },
+  { id: 'CAS004', title: 'Falta de pago por carrera profesional vs. MEP', clientName: 'Bruno Costa', assignedTo: 'Gabriel Rocha', status: 'Sentencia', lastUpdate: '2023-11-05', category: 'No Contenciosa', specialty: 'Pagos', opportunityLifecycle: 95 },
 ];
 
 // Lista de notificaciones de ejemplo.

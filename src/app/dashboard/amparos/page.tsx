@@ -50,6 +50,7 @@ const getStatusVariant = (status: string) => {
 
 // Esta es la función principal que define la página de Casos.
 export default function CasesPage() {
+  const amparosCCSS = cases.filter(c => c.title.includes('CCSS'));
   // La página utiliza un sistema de pestañas (Tabs) para filtrar los casos.
   return (
     <Tabs defaultValue="all">
@@ -74,7 +75,7 @@ export default function CasesPage() {
           </CardHeader>
           <CardContent>
             {/* Reutilizamos el componente CasesTable para mostrar la tabla. */}
-            <CasesTable cases={cases} />
+            <CasesTable cases={amparosCCSS} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -86,7 +87,7 @@ export default function CasesPage() {
             <CardDescription>Gestiona los amparos legales de tipo contenciosa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CasesTable cases={cases.filter(c => c.category === 'Contenciosa')} />
+            <CasesTable cases={amparosCCSS.filter(c => c.category === 'Contenciosa')} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -98,7 +99,7 @@ export default function CasesPage() {
             <CardDescription>Gestiona los amparos legales de tipo no contenciosa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CasesTable cases={cases.filter(c => c.category === 'No Contenciosa')} />
+            <CasesTable cases={amparosCCSS.filter(c => c.category === 'No Contenciosa')} />
           </CardContent>
         </Card>
       </TabsContent>

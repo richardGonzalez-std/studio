@@ -50,6 +50,7 @@ const getStatusVariant = (status: string) => {
 
 // Esta es la función principal que define la página de Casos.
 export default function AmparosMepPage() {
+  const amparosMep = cases.filter(c => c.title.includes('MEP'));
   // La página utiliza un sistema de pestañas (Tabs) para filtrar los casos.
   return (
     <Tabs defaultValue="all">
@@ -70,11 +71,11 @@ export default function AmparosMepPage() {
         <Card>
           <CardHeader>
             <CardTitle>Todos los Amparos MEP</CardTitle>
-            <CardDescription>Gestiona todos los amparos MEP.</CardDescription>
+            <CardDescription>Gestiona todos los amparos relacionados con el MEP.</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Reutilizamos el componente CasesTable para mostrar la tabla. */}
-            <CasesTable cases={cases} />
+            <CasesTable cases={amparosMep} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -86,7 +87,7 @@ export default function AmparosMepPage() {
             <CardDescription>Gestiona los amparos MEP de tipo contenciosa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CasesTable cases={cases.filter(c => c.category === 'Contenciosa')} />
+            <CasesTable cases={amparosMep.filter(c => c.category === 'Contenciosa')} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -98,7 +99,7 @@ export default function AmparosMepPage() {
             <CardDescription>Gestiona los amparos MEP de tipo no contenciosa.</CardDescription>
           </CardHeader>
           <CardContent>
-            <CasesTable cases={cases.filter(c => c.category === 'No Contenciosa')} />
+            <CasesTable cases={amparosMep.filter(c => c.category === 'No Contenciosa')} />
           </CardContent>
         </Card>
       </TabsContent>
