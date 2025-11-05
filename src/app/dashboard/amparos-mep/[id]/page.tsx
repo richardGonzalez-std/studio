@@ -6,6 +6,9 @@ import {
     FileText,
     Image as ImageIcon,
     FileArchive,
+    FileJson,
+    BookUser,
+    Shield,
   } from "lucide-react";
   import Link from "next/link";
   import {
@@ -18,7 +21,6 @@ import {
   } from "@/components/ui/card";
   import { Button } from "@/components/ui/button";
   import { Badge } from "@/components/ui/badge";
-  import { Progress } from "@/components/ui/progress";
   import { Textarea } from "@/components/ui/textarea";
   import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
   import { cases } from "@/lib/data";
@@ -122,14 +124,28 @@ import {
                   <h3 className="font-medium">Última Actualización</h3>
                   <p className="text-muted-foreground">{caseItem.lastUpdate}</p>
                 </div>
-                <div>
-                  <h3 className="font-medium">Ciclo de Vida de la Oportunidad</h3>
-                  <div className="flex items-center gap-2">
-                    <Progress value={caseItem.opportunityLifecycle} className="h-2" />
-                    <span className="text-xs text-muted-foreground">{caseItem.opportunityLifecycle}%</span>
-                  </div>
-                </div>
               </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Generador de Documentos</CardTitle>
+                    <CardDescription>Crea los documentos legales necesarios para el caso.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <Button variant="outline">
+                        <FileJson className="mr-2 h-4 w-4" />
+                        Generar Contrato
+                    </Button>
+                    <Button variant="outline">
+                        <BookUser className="mr-2 h-4 w-4" />
+                        Generar Poder
+                    </Button>
+                    <Button variant="outline">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Generar Amparo
+                    </Button>
+                </CardContent>
             </Card>
   
             <Card>
