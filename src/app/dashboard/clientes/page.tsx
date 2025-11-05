@@ -28,33 +28,34 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // Importamos los datos de ejemplo para los usuarios.
 import { users } from "@/lib/data";
 
-// Esta es la función principal que define la página de Oportunidades (usuarios).
-export default function UsersPage() {
-  // La función devuelve una tarjeta (Card) que contiene la tabla de usuarios.
+// Esta es la función principal que define la página de Clientes.
+export default function ClientesPage() {
+  const clientes = users.filter(u => u.status === 'Caso Creado');
+  // La función devuelve una tarjeta (Card) que contiene la tabla de clientes.
   return (
     <Card>
       {/* El encabezado de la tarjeta con título, descripción y botón para agregar. */}
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Oportunidades</CardTitle>
-                <CardDescription>Gestiona los registros de usuarios y su ciclo de vida.</CardDescription>
+                <CardTitle>Clientes</CardTitle>
+                <CardDescription>Gestiona los clientes existentes.</CardDescription>
             </div>
             <Button size="sm" className="gap-1">
                 <PlusCircle className="h-4 w-4" />
-                Agregar Oportunidad
+                Agregar Cliente
             </Button>
         </div>
       </CardHeader>
-      {/* El contenido de la tarjeta es la tabla con la lista de usuarios. */}
+      {/* El contenido de la tarjeta es la tabla con la lista de clientes. */}
       <CardContent>
         <Table>
           {/* El encabezado de la tabla define las columnas. */}
           <TableHeader>
             <TableRow>
-              <TableHead>Usuario</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead className="hidden md:table-cell">Contacto</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>Casos Activos</TableHead>
               <TableHead className="hidden md:table-cell">Registrado El</TableHead>
               <TableHead>
                 <span className="sr-only">Acciones</span>
@@ -64,7 +65,7 @@ export default function UsersPage() {
           {/* El cuerpo de la tabla se llena con los datos de los usuarios. */}
           <TableBody>
             {/* Usamos la función 'map' para crear una fila por cada usuario. */}
-            {users.map((user) => (
+            {clientes.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -80,7 +81,7 @@ export default function UsersPage() {
                     <div className="text-sm text-muted-foreground">{user.phone}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.status === 'Caso Creado' ? 'default' : 'secondary'}>{user.status}</Badge>
+                  <Badge variant='default'>1</Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{user.registeredOn}</TableCell>
                 <TableCell>
@@ -95,7 +96,7 @@ export default function UsersPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                       <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
-                      <DropdownMenuItem>Convertir a Caso</DropdownMenuItem>
+                      <DropdownMenuItem>Crear Caso</DropdownMenuItem>
                       <DropdownMenuItem>Editar</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>

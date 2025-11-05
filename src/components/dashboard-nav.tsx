@@ -22,13 +22,17 @@ import {
   School,
   PlayCircle,
   MessageSquare,
+  HeartHandshake,
+  UserCheck,
 } from "lucide-react";
 
 // Definimos los elementos de nuestro menú de navegación en un array.
 // Cada objeto tiene la ruta (href), el ícono y la etiqueta de texto.
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Reportes" },
-  { href: "/dashboard/users", icon: Users, label: "Oportunidades" },
+  { href: "/dashboard/leads", icon: HeartHandshake, label: "Leads" },
+  { href: "/dashboard/deals", icon: Users, label: "Oportunidades" },
+  { href: "/dashboard/clientes", icon: UserCheck, label: "Clientes" },
   { href: "/dashboard/volunteers", icon: Handshake, label: "Voluntarios" },
   { href: "/dashboard/branches", icon: Building, label: "Puntos Autorizados" },
   { href: "/dashboard/amparos", icon: Gavel, label: "Amparos" },
