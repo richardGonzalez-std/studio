@@ -105,19 +105,19 @@ import {
                     </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {/* Mostramos el ID del amparo original */}
                 {caseItem.amparoId && (
-                  <div>
+                  <div className="grid gap-1">
                     <h3 className="font-medium">Amparo Original</h3>
                     <p className="text-muted-foreground">{caseItem.amparoId}</p>
                   </div>
                 )}
-                <div>
+                <div className="grid gap-1">
                   <h3 className="font-medium">Abogado Asignado</h3>
                   <p className="text-muted-foreground">{caseItem.assignedTo}</p>
                 </div>
-                <div>
+                <div className="grid gap-1">
                   <h3 className="font-medium">Última Actualización</h3>
                   <p className="text-muted-foreground">{caseItem.lastUpdate}</p>
                 </div>

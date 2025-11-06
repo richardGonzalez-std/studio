@@ -111,12 +111,12 @@ import {
                     </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
+              <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                <div className="grid gap-1">
                   <h3 className="font-medium">Abogado Asignado</h3>
                   <p className="text-muted-foreground">{caseItem.assignedTo}</p>
                 </div>
-                <div>
+                <div className="grid gap-1">
                   <h3 className="font-medium">Última Actualización</h3>
                   <p className="text-muted-foreground">{caseItem.lastUpdate}</p>
                 </div>
