@@ -9,6 +9,8 @@ export type User = {
   email: string; // Correo electrónico del usuario.
   phone: string; // Teléfono del usuario.
   status: 'Nuevo' | 'Contactado' | 'Pendiente' | 'Caso Creado'; // El estado actual de la oportunidad.
+  clientStatus?: 'Activo' | 'Suspendido'; // Estado del cliente
+  unsignedCaseId?: string; // ID del caso pendiente de firma
   registeredOn: string; // Fecha de registro.
   avatarUrl: string; // URL de la imagen de perfil.
 };
@@ -57,7 +59,7 @@ export type Case = {
   amparoId?: string; // ID del amparo original (para ejecuciones).
   clientName: string; // Nombre del cliente asociado al caso.
   assignedTo: string; // A quién está asignado el caso.
-  status: 'Abierto' | 'En Progreso' | 'En Espera' | 'Cerrado' | 'Sentencia'; // Estado actual del caso.
+  status: 'Abierto' | 'En Progreso' | 'En Espera' | 'Cerrado' | 'Sentencia' | 'Presentado' | 'Con curso' | 'Rechazo de plano' | 'Con lugar con costas' | 'Con lugar sin costas'; // Estado actual del caso.
   lastUpdate: string; // Fecha de la última actualización.
   category: 'Contenciosa' | 'No Contenciosa'; // Categoría del caso.
   specialty: string; // Especialidad médica del amparo.
@@ -173,11 +175,12 @@ export type Task = {
 
 // Lista de usuarios de ejemplo (Leads).
 export const users: User[] = [
-  { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Caso Creado', registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
+  { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Caso Creado', clientStatus: 'Suspendido', unsignedCaseId: '23-12345-0007-CO', registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
   { id: 'USR002', name: 'Bruno Costa Marin', cedula: '2-0987-6543', email: 'bruno.costa@example.com', phone: '6123-4567', status: 'Contactado', registeredOn: '2023-10-25', avatarUrl: 'https://picsum.photos/seed/avatar2/40/40' },
   { id: 'USR003', name: 'Carla Díaz Solano', cedula: '3-1111-2222', email: 'carla.dias@example.com', phone: '7555-4444', status: 'Nuevo', registeredOn: '2023-10-27', avatarUrl: 'https://picsum.photos/seed/avatar3/40/40' },
   { id: 'USR004', name: 'Daniel Alves Mora', cedula: '4-2222-3333', email: 'daniel.alves@example.com', phone: '5432-1876', status: 'Pendiente', registeredOn: '2023-10-24', avatarUrl: 'https://picsum.photos/seed/avatar4/40/40' },
   { id: 'USR005', name: 'Beatriz Lima Fernández', cedula: '5-3333-4444', email: 'beatriz.lima@example.com', phone: '8877-6655', status: 'Nuevo', registeredOn: '2023-10-28', avatarUrl: 'https://picsum.photos/seed/avatar5/40/40' },
+  { id: 'USR006', name: 'John Doe', cedula: '6-4444-5555', email: 'john.doe@example.com', phone: '1122-3344', status: 'Caso Creado', clientStatus: 'Activo', registeredOn: '2023-10-29', avatarUrl: 'https://picsum.photos/seed/avatarJD/40/40' },
 ];
 
 // Lista de personal interno

@@ -28,10 +28,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // Importamos los datos de ejemplo para los usuarios.
 import { users } from "@/lib/data";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+
 
 // Esta es la función principal que define la página de Clientes.
 export default function ClientesPage() {
   const clientes = users.filter(u => u.status === 'Caso Creado');
+
+  const getStatusVariant = (status: 'Activo' | 'Suspendido') => {
+      return status === 'Activo' ? 'default' : 'destructive';
+  }
   // La función devuelve una tarjeta (Card) que contiene la tabla de clientes.
   return (
     <Card>
@@ -58,6 +64,7 @@ export default function ClientesPage() {
               <TableHead>Cédula</TableHead>
               <TableHead className="hidden md:table-cell">Contacto</TableHead>
               <TableHead>Casos Activos</TableHead>
+              <TableHead>Estado del Cliente</TableHead>
               <TableHead className="hidden md:table-cell">Registrado El</TableHead>
               <TableHead>
                 <span className="sr-only">Acciones</span>
@@ -89,6 +96,19 @@ export default function ClientesPage() {
                         <Badge variant='default'>1</Badge>
                     </Link>
                   </Button>
+                </TableCell>
+                <TableCell>
+                    {user.clientStatus && (
+                        user.clientStatus === 'Suspendido' && user.unsignedCaseId ? (
+                            <Button variant='link' asChild className="p-0 h-auto">
+                                <Link href={`/dashboard/cases/${user.unsignedCaseId.toLowerCase()}`}>
+                                    <Badge variant={getStatusVariant(user.clientStatus)}>{user.clientStatus}</Badge>
+                                </Link>
+                            </Button>
+                        ) : (
+                             <Badge variant={getStatusVariant(user.clientStatus)}>{user.clientStatus}</Badge>
+                        )
+                    )}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{user.registeredOn}</TableCell>
                 <TableCell>
