@@ -141,6 +141,16 @@ text: string;
 time: string;
 };
 
+// Estructura para notificaciones judiciales
+export type JudicialNotification = {
+    id: string;
+    expediente: string;
+    acto: 'Curso' | 'Con Lugar con Costas' | 'Con Lugar sin Costas' | 'Providencia' | 'Prevención';
+    fecha: string;
+    status: 'Leída' | 'Pendiente';
+    asignadaA: string;
+};
+
 // Lista de usuarios de ejemplo (Leads).
 export const users: User[] = [
   { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Caso Creado', registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
@@ -191,8 +201,8 @@ export const branches: Branch[] = [
 export const cases: Case[] = [
   { id: '23-12345-0007-CO', title: 'Lista de espera por cirugía vs. CCSS', clientName: 'Ana Silva Rojas', assignedTo: 'Eduardo Martins', status: 'Sentencia', lastUpdate: '2023-11-01', category: 'Contenciosa', specialty: 'Cirugía General', opportunityLifecycle: 90 },
   { id: '23-54321-0007-CO', title: 'Cita a largo plazo para radiología vs. CCSS', clientName: 'John Doe', assignedTo: 'Fernanda Lima', status: 'Abierto', lastUpdate: '2023-10-30', category: 'No Contenciosa', specialty: 'Radiología', opportunityLifecycle: 25 },
-  { id: '23-00112-0007-CO', title: 'Atraso en pago de salarios vs. MEP', clientName: 'Jane Smith', assignedTo: 'Eduardo Martins', status: 'En Progreso', lastUpdate: '2023-09-15', category: 'Contenciosa', specialty: 'Recursos Humanos', opportunityLifecycle: 50 },
-  { id: '23-00234-0007-CO', title: 'Falta de pago por carrera profesional vs. MEP', clientName: 'Bruno Costa Marin', assignedTo: 'Gabriel Rocha', status: 'Sentencia', lastUpdate: '2023-11-05', category: 'No Contenciosa', specialty: 'Pagos', opportunityLifecycle: 95 },
+  { id: '23-00112-1016-CA', title: 'Atraso en pago de salarios vs. MEP', clientName: 'Jane Smith', assignedTo: 'Eduardo Martins', status: 'En Progreso', lastUpdate: '2023-09-15', category: 'Contenciosa', specialty: 'Recursos Humanos', opportunityLifecycle: 50 },
+  { id: '23-00234-1016-CA', title: 'Falta de pago por carrera profesional vs. MEP', clientName: 'Bruno Costa Marin', assignedTo: 'Gabriel Rocha', status: 'Sentencia', lastUpdate: '2023-11-05', category: 'No Contenciosa', specialty: 'Pagos', opportunityLifecycle: 95 },
   { id: '23-88765-1021-CA', amparoId: '23-12345-0007-CO', clientName: 'Ana Silva Rojas', assignedTo: 'Eduardo Martins', status: 'En Progreso', lastUpdate: '2023-11-10', category: 'Contenciosa', specialty: 'Cobro Judicial', opportunityLifecycle: 40 },
 ];
 
@@ -287,4 +297,13 @@ export const internalNotes: InternalNote[] = [
     { id: 'NOTE01', conversationId: 'CONV01', senderName: 'Raizza Mildrey', avatarUrl: 'https://picsum.photos/seed/staff2/40/40', text: 'Ojo, revisar el documento "Prueba_Contrato.pdf". Parece que falta una firma.', time: '10:12 AM' },
     { id: 'NOTE02', conversationId: 'CONV01', senderName: 'Carolina Chavarría', avatarUrl: 'https://picsum.photos/seed/staff5/40/40', text: 'Confirmado, voy a contactar a la cliente para solicitarle el documento firmado.', time: '10:20 AM' },
     { id: 'NOTE03', conversationId: 'CONV02', senderName: 'Jorge Ortiz', avatarUrl: 'https://picsum.photos/seed/staff1/40/40', text: 'Este caso del MEP parece complejo. Richard, ¿podrías darle un vistazo?', time: '9:40 AM' },
+];
+
+// Lista de notificaciones judiciales de ejemplo
+export const judicialNotifications: JudicialNotification[] = [
+    { id: 'NOT001', expediente: '23-12345-0007-CO', acto: 'Con Lugar con Costas', fecha: '2023-11-20', status: 'Leída', asignadaA: 'Sistema' },
+    { id: 'NOT002', expediente: '23-00234-1016-CA', acto: 'Prevención', fecha: '2023-11-21', status: 'Pendiente', asignadaA: 'Freddy Bravo' },
+    { id: 'NOT003', expediente: '23-88765-1021-CA', acto: 'Curso', fecha: '2023-11-19', status: 'Leída', asignadaA: 'Sistema' },
+    { id: 'NOT004', expediente: '23-54321-0007-CO', acto: 'Providencia', fecha: '2023-11-22', status: 'Pendiente', asignadaA: 'Sistema' },
+    { id: 'NOT005', expediente: '23-00112-1016-CA', acto: 'Con Lugar sin Costas', fecha: '2023-11-18', status: 'Leída', asignadaA: 'Sistema' },
 ];
