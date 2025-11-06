@@ -96,10 +96,10 @@ import {
         </div>
   
         {/* Grid para organizar las tarjetas de información. */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           
           {/* Columna principal para el módulo de Helpdesk (chat) */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
              <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -169,7 +169,7 @@ import {
           </div>
 
           {/* Columna lateral con detalles del caso, generador de documentos y pruebas */}
-          <div className="space-y-6 lg:col-span-1">
+          <div className="space-y-6 lg:col-span-2">
             <Card>
                 <CardHeader>
                     <CardTitle>Generador de Documentos</CardTitle>
