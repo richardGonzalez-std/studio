@@ -151,6 +151,17 @@ export type JudicialNotification = {
     asignadaA: string;
 };
 
+// Estructura para las tareas
+export type Task = {
+  id: string;
+  title: string;
+  caseId: string;
+  assignedTo: string;
+  dueDate: string;
+  priority: 'Alta' | 'Media' | 'Baja';
+  status: 'Pendiente' | 'En Progreso' | 'Completada';
+};
+
 // Lista de usuarios de ejemplo (Leads).
 export const users: User[] = [
   { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Caso Creado', registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
@@ -162,22 +173,22 @@ export const users: User[] = [
 
 // Lista de personal interno
 export const staff: Staff[] = [
-  { id: 'STF001', name: 'Jorge Ortiz', email: 'jorge@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff1/40/40' },
-  { id: 'STF002', name: 'Raizza Mildrey', email: 'raizza@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff2/40/40' },
-  { id: 'STF003', name: 'Freddy Bravo', email: 'freddy@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff3/40/40' },
-  { id: 'STF004', name: 'Richard Milán', email: 'richard@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff4/40/40' },
-  { id: 'STF005', name: 'Carolina Chavarría', email: 'carolina@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff5/40/40' },
-  { id: 'STF006', name: 'María Vargas', email: 'maria@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff6/40/40' },
-  { id: 'STF007', name: 'Leonardo Gómez', email: 'leonardo@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff7/40/40' },
+  { id: 'STF001', name: 'Jorge Ortiz Solís', email: 'jorge@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff1/40/40' },
+  { id: 'STF002', name: 'Raizza Mildrey Arocena', email: 'raizza@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff2/40/40' },
+  { id: 'STF003', name: 'Freddy Bravo Chacón', email: 'freddy@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff3/40/40' },
+  { id: 'STF004', name: 'Richard Milán Vargas', email: 'richard@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff4/40/40' },
+  { id: 'STF005', name: 'Carolina Chavarría Arley', email: 'carolina@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff5/40/40' },
+  { id: 'STF006', name: 'María Vargas Solano', email: 'maria@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff6/40/40' },
+  { id: 'STF007', name: 'Leonardo Gómez Pérez', email: 'leonardo@dsf.cr', avatarUrl: 'https://picsum.photos/seed/staff7/40/40' },
 ];
 
 // Lista de oportunidades de ejemplo
 export const opportunities: Opportunity[] = [
-    { id: 'OPP001', leadCedula: '1-1234-5678', against: 'CCSS', opportunityType: 'Lista de Espera', status: 'Nuevo', startDate: '2023-11-01', assignedTo: 'Raizza Mildrey' },
-    { id: 'OPP002', leadCedula: '2-0987-6543', against: 'MEP', opportunityType: 'Salarios', status: 'Contactado', startDate: '2023-11-02', assignedTo: 'Jorge Ortiz' },
-    { id: 'OPP003', leadCedula: '3-1111-2222', against: 'Municipalidad', opportunityType: 'Falta de Respuesta', status: 'Pendiente', startDate: '2023-11-03', assignedTo: 'Freddy Bravo' },
-    { id: 'OPP004', leadCedula: '4-2222-3333', against: 'CCSS', opportunityType: 'Cirugía', status: 'Nuevo', startDate: '2023-11-04', assignedTo: 'Raizza Mildrey' },
-    { id: 'OPP005', leadCedula: '5-3333-4444', against: 'MEP', opportunityType: 'Carrera Profesional', status: 'Caso Creado', startDate: '2023-11-05', assignedTo: 'Richard Milán' },
+    { id: 'OPP001', leadCedula: '1-1234-5678', against: 'CCSS', opportunityType: 'Lista de Espera', status: 'Nuevo', startDate: '2023-11-01', assignedTo: 'Raizza Mildrey Arocena' },
+    { id: 'OPP002', leadCedula: '2-0987-6543', against: 'MEP', opportunityType: 'Salarios', status: 'Contactado', startDate: '2023-11-02', assignedTo: 'Jorge Ortiz Solís' },
+    { id: 'OPP003', leadCedula: '3-1111-2222', against: 'Municipalidad', opportunityType: 'Falta de Respuesta', status: 'Pendiente', startDate: '2023-11-03', assignedTo: 'Freddy Bravo Chacón' },
+    { id: 'OPP004', leadCedula: '4-2222-3333', against: 'CCSS', opportunityType: 'Cirugía', status: 'Nuevo', startDate: '2023-11-04', assignedTo: 'Raizza Mildrey Arocena' },
+    { id: 'OPP005', leadCedula: '5-3333-4444', against: 'MEP', opportunityType: 'Carrera Profesional', status: 'Caso Creado', startDate: '2023-11-05', assignedTo: 'Richard Milán Vargas' },
 ];
 
 
@@ -212,7 +223,7 @@ export const notifications = [
     { id: 2, text: 'El estado del caso #23-12345-0007-CO se actualizó a "Sentencia".', time: 'hace 1 hora', read: false },
     { id: 3, text: 'La voluntaria "Fernanda Lima" acaba de registrarse.', time: 'hace 3 horas', read: true },
     { id: 4, text: 'Se ha subido un documento para el caso #23-54321-0007-CO.', time: 'hace 1 día', read: true },
-    { id: 5, text: 'Documentos para caso #23-00234-0007-CO listos para retirar en Punto Autorizado Heredia.', time: 'hace 2 días', read: true },
+    { id: 5, text: 'Documentos para caso #23-00234-1016-CA listos para retirar en Punto Autorizado Heredia.', time: 'hace 2 días', read: true },
 ];
 
 // Lista de mensajeros
@@ -224,7 +235,7 @@ export const couriers: Courier[] = [
 // Lista de recogidas pendientes
 export const pendingPickups: PendingPickup[] = [
   { id: 'PICK01', caseId: '23-12345-0007-CO', clientName: 'Ana Silva Rojas', branchId: 'BRH002', branchName: 'Punto Autorizado Heredia', documentCount: 3, status: 'Pendiente de Retiro' },
-  { id: 'PICK02', caseId: '23-00234-0007-CO', clientName: 'Bruno Costa Marin', branchId: 'BRH003', branchName: 'Punto Autorizado Cartago', documentCount: 2, status: 'Pendiente de Retiro' },
+  { id: 'PICK02', caseId: '23-00234-1016-CA', clientName: 'Bruno Costa Marin', branchId: 'BRH003', branchName: 'Punto Autorizado Cartago', documentCount: 2, status: 'Pendiente de Retiro' },
   { id: 'PICK03', caseId: 'CAS005', clientName: 'Otro Cliente', branchId: 'BRH002', branchName: 'Punto Autorizado Heredia', documentCount: 1, status: 'Pendiente de Retiro' },
 ];
 
@@ -273,37 +284,45 @@ export const routes: Route[] = [
 // Lista de cobros de ejemplo
 export const cobros: Cobro[] = [
     { id: 'COB001', ejecucionId: '23-88765-1021-CA', amparoId: '23-12345-0007-CO', fechaSentencia: '2023-11-01', fechaPresentacion: '2023-11-15', status: 'Con Sentencia' },
-    { id: 'COB002', ejecucionId: '23-99887-1021-CA', amparoId: '23-00234-0007-CO', fechaSentencia: '2023-11-05', fechaPresentacion: '2023-11-20', status: 'Con Depósito' },
+    { id: 'COB002', ejecucionId: '23-99887-1021-CA', amparoId: '23-00234-1016-CA', fechaSentencia: '2023-11-05', fechaPresentacion: '2023-11-20', status: 'Con Depósito' },
 ];
 
 // Datos de ejemplo para las conversaciones del Helpdesk
 export const conversations: Conversation[] = [
     { id: 'CONV01', name: 'Ana Silva Rojas', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40', caseId: '23-12345-0007-CO', lastMessage: 'Perfecto, quedo a la espera. Muchas gracias.', time: '10:15 AM', status: 'Abierto' },
-    { id: 'CONV02', name: 'Bruno Costa Marin', avatarUrl: 'https://picsum.photos/seed/avatar2/40/40', caseId: '23-00234-0007-CO', lastMessage: '¿Podrían confirmarme la recepción de los documentos?', time: 'Ayer', status: 'Abierto' },
+    { id: 'CONV02', name: 'Bruno Costa Marin', avatarUrl: 'https://picsum.photos/seed/avatar2/40/40', caseId: '23-00234-1016-CA', lastMessage: '¿Podrían confirmarme la recepción de los documentos?', time: 'Ayer', status: 'Abierto' },
     { id: 'CONV03', name: 'John Doe', avatarUrl: 'https://picsum.photos/seed/avatarJD/40/40', caseId: '23-54321-0007-CO', lastMessage: 'Gracias por la ayuda.', time: '2d', status: 'Resuelto' },
 ];
 
 // Datos de ejemplo para los mensajes de un chat
 export const chatMessages: ChatMessage[] = [
     { id: 'MSG01', conversationId: 'CONV01', senderType: 'client', senderName: 'Ana Silva Rojas', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40', text: 'Buenos días, adjunto los documentos que me solicitaron. ¿Necesitan algo más?', time: '10:05 AM' },
-    { id: 'MSG02', conversationId: 'CONV01', senderType: 'agent', senderName: 'Raizza Mildrey', avatarUrl: 'https://picsum.photos/seed/staff2/40/40', text: 'Recibido, gracias Ana. Lo revisaremos y le informaremos cualquier novedad. Saludos.', time: '10:10 AM' },
+    { id: 'MSG02', conversationId: 'CONV01', senderType: 'agent', senderName: 'Raizza Mildrey Arocena', avatarUrl: 'https://picsum.photos/seed/staff2/40/40', text: 'Recibido, gracias Ana. Lo revisaremos y le informaremos cualquier novedad. Saludos.', time: '10:10 AM' },
     { id: 'MSG03', conversationId: 'CONV01', senderType: 'client', senderName: 'Ana Silva Rojas', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40', text: 'Perfecto, quedo a la espera. Muchas gracias.', time: '10:15 AM' },
     { id: 'MSG04', conversationId: 'CONV02', senderType: 'client', senderName: 'Bruno Costa Marin', avatarUrl: 'https://picsum.photos/seed/avatar2/40/40', text: 'Hola, ¿podrían confirmarme la recepción de los documentos que envié ayer?', time: '9:30 AM' },
-    { id: 'MSG05', conversationId: 'CONV02', senderType: 'agent', senderName: 'Jorge Ortiz', avatarUrl: 'https://picsum.photos/seed/staff1/40/40', text: 'Buenos días Bruno, sí, los recibimos correctamente. Ya están siendo procesados.', time: '9:35 AM' },
+    { id: 'MSG05', conversationId: 'CONV02', senderType: 'agent', senderName: 'Jorge Ortiz Solís', avatarUrl: 'https://picsum.photos/seed/staff1/40/40', text: 'Buenos días Bruno, sí, los recibimos correctamente. Ya están siendo procesados.', time: '9:35 AM' },
 ];
 
 // Datos de ejemplo para las notas internas
 export const internalNotes: InternalNote[] = [
-    { id: 'NOTE01', conversationId: 'CONV01', senderName: 'Raizza Mildrey', avatarUrl: 'https://picsum.photos/seed/staff2/40/40', text: 'Ojo, revisar el documento "Prueba_Contrato.pdf". Parece que falta una firma.', time: '10:12 AM' },
-    { id: 'NOTE02', conversationId: 'CONV01', senderName: 'Carolina Chavarría', avatarUrl: 'https://picsum.photos/seed/staff5/40/40', text: 'Confirmado, voy a contactar a la cliente para solicitarle el documento firmado.', time: '10:20 AM' },
-    { id: 'NOTE03', conversationId: 'CONV02', senderName: 'Jorge Ortiz', avatarUrl: 'https://picsum.photos/seed/staff1/40/40', text: 'Este caso del MEP parece complejo. Richard, ¿podrías darle un vistazo?', time: '9:40 AM' },
+    { id: 'NOTE01', conversationId: 'CONV01', senderName: 'Raizza Mildrey Arocena', avatarUrl: 'https://picsum.photos/seed/staff2/40/40', text: 'Ojo, revisar el documento "Prueba_Contrato.pdf". Parece que falta una firma.', time: '10:12 AM' },
+    { id: 'NOTE02', conversationId: 'CONV01', senderName: 'Carolina Chavarría Arley', avatarUrl: 'https://picsum.photos/seed/staff5/40/40', text: 'Confirmado, voy a contactar a la cliente para solicitarle el documento firmado.', time: '10:20 AM' },
+    { id: 'NOTE03', conversationId: 'CONV02', senderName: 'Jorge Ortiz Solís', avatarUrl: 'https://picsum.photos/seed/staff1/40/40', text: 'Este caso del MEP parece complejo. Richard, ¿podrías darle un vistazo?', time: '9:40 AM' },
 ];
 
 // Lista de notificaciones judiciales de ejemplo
 export const judicialNotifications: JudicialNotification[] = [
     { id: 'NOT001', expediente: '23-12345-0007-CO', acto: 'Con Lugar con Costas', fecha: '2023-11-20', status: 'Leída', asignadaA: 'Sistema' },
-    { id: 'NOT002', expediente: '23-00234-1016-CA', acto: 'Prevención', fecha: '2023-11-21', status: 'Pendiente', asignadaA: 'Freddy Bravo' },
+    { id: 'NOT002', expediente: '23-00234-1016-CA', acto: 'Prevención', fecha: '2023-11-21', status: 'Pendiente', asignadaA: 'Freddy Bravo Chacón' },
     { id: 'NOT003', expediente: '23-88765-1021-CA', acto: 'Curso', fecha: '2023-11-19', status: 'Leída', asignadaA: 'Sistema' },
     { id: 'NOT004', expediente: '23-54321-0007-CO', acto: 'Providencia', fecha: '2023-11-22', status: 'Pendiente', asignadaA: 'Sistema' },
     { id: 'NOT005', expediente: '23-00112-1016-CA', acto: 'Con Lugar sin Costas', fecha: '2023-11-18', status: 'Leída', asignadaA: 'Sistema' },
+];
+
+// Lista de tareas de ejemplo
+export const tasks: Task[] = [
+  { id: 'TSK001', title: 'Revisar prevención del expediente 23-00234-1016-CA', caseId: '23-00234-1016-CA', assignedTo: 'Freddy Bravo Chacón', dueDate: '2023-11-23', priority: 'Alta', status: 'Pendiente' },
+  { id: 'TSK002', title: 'Contactar a Ana Silva para firma de contrato', caseId: '23-12345-0007-CO', assignedTo: 'Carolina Chavarría Arley', dueDate: '2023-11-25', priority: 'Media', status: 'En Progreso' },
+  { id: 'TSK003', title: 'Preparar documento de ejecución para 23-12345-0007-CO', caseId: '23-12345-0007-CO', assignedTo: 'Richard Milán Vargas', dueDate: '2023-11-28', priority: 'Media', status: 'Pendiente' },
+  { id: 'TSK004', title: 'Archivar sentencia del caso de John Doe', caseId: '23-54321-0007-CO', assignedTo: 'Sistema', dueDate: '2023-11-22', priority: 'Baja', status: 'Completada' },
 ];

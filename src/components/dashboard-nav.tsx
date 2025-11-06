@@ -27,6 +27,7 @@ import {
   Briefcase,
   CircleDollarSign,
   Bell,
+  ClipboardCheck,
 } from "lucide-react";
 
 // Definimos los elementos de nuestro menú de navegación en un array.
@@ -44,6 +45,7 @@ const navItems = [
   { href: "/dashboard/ejecuciones", icon: PlayCircle, label: "Ejecuciones" },
   { href: "/dashboard/cobros", icon: CircleDollarSign, label: "Cobros" },
   { href: "/dashboard/notificaciones", icon: Bell, label: "Notificaciones" },
+  { href: "/dashboard/tareas", icon: ClipboardCheck, label: "Tareas" },
   { href: "/dashboard/comunicaciones", icon: MessageSquare, label: "Comunicaciones" },
   { href: "/dashboard/staff", icon: Briefcase, label: "Colaboradores" },
 ];
