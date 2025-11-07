@@ -37,18 +37,18 @@ const getSourceVariant = (source: Payment['source']) => {
 };
 
 /**
- * Componente principal de la página de Gestión de Pagos.
- * Muestra una tabla con el historial de pagos recibidos de los deudores.
+ * Componente principal de la página de Gestión de Abonos.
+ * Muestra una tabla con el historial de abonos recibidos de los deudores.
  */
-export default function PagosPage() {
+export default function AbonosPage() {
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Gestión de Pagos de Deudores</CardTitle>
+                <CardTitle>Gestión de Abonos de Deudores</CardTitle>
                 <CardDescription>
-                Aplica pagos individuales o masivos desde planillas y visualiza el historial.
+                Aplica abonos individuales o masivos desde planillas y visualiza el historial.
                 </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export default function PagosPage() {
                 {/* $$$ CONECTOR MYSQL: Este botón registrará un nuevo pago en la tabla de pagos de la base de datos. */}
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Registrar Pago
+                    Registrar Abono
                 </Button>
             </div>
         </div>
@@ -94,7 +94,7 @@ export default function PagosPage() {
 
 
 /**
- * Componente que renderiza una única fila de la tabla de pagos.
+ * Componente que renderiza una única fila de la tabla de abonos.
  * Usamos React.memo para optimizar el rendimiento, evitando que se vuelva a renderizar si sus props no cambian.
  * @param {{ payment: Payment }} props - Las propiedades del componente, que incluyen un objeto de pago.
  */
