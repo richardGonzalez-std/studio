@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { investments, Investment } from '@/lib/data';
 import {
   Select,
@@ -19,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function InvestmentDetailClient({ id }: { id: string }) {
   const investment = investments.find((i) => i.investmentNumber === id);
@@ -33,6 +34,8 @@ function InvestmentDetailClient({ id }: { id: string }) {
       </div>
     );
   }
+
+  const [rate, setRate] = useState(investment.rate.toString());
   
   const retentionAmount = investment.amount * 0.15;
 
@@ -98,11 +101,17 @@ function InvestmentDetailClient({ id }: { id: string }) {
               </p>
             </div>
              <div className="grid gap-1">
-              <h3 className="font-medium">Intereses</h3>
-               <p className="text-muted-foreground">
-                Tasa Anual: {investment.rate}% <br/>
-                Periodicidad: {investment.interestFrequency}
-              </p>
+                <Label htmlFor="rate" className="font-medium">Tasa de Interés Anual (%)</Label>
+                <Input
+                    id="rate"
+                    type="number"
+                    value={rate}
+                    onChange={(e) => setRate(e.target.value)}
+                    className="font-mono"
+                />
+                 <p className="text-sm text-muted-foreground">
+                    Periodicidad: {investment.interestFrequency}
+                </p>
             </div>
              <div className="grid gap-1">
                 <h3 className="font-medium">Capitalizable</h3>
