@@ -93,8 +93,8 @@ export default function CreditsPage() {
         body: data.map(c => [
             c.operationNumber,
             c.debtorName,
-            `₡${c.amount.toLocaleString('de-DE')}`,
-            `₡${c.balance.toLocaleString('de-DE')}`,
+            c.amount.toLocaleString('de-DE'),
+            c.balance.toLocaleString('de-DE'),
             c.status,
             c.dueDate
         ]),
