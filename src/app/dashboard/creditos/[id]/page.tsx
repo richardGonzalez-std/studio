@@ -5,8 +5,6 @@ import {
   ArrowLeft,
   Paperclip,
   FileText,
-  FileJson,
-  FileSignature,
   MessageSquare,
   PanelRightClose,
   PanelRightOpen,
@@ -16,6 +14,7 @@ import {
   Gavel,
   UserCog,
   Scale,
+  FileSignature,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -46,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 // $$$ CONECTOR MYSQL/ERP: Los archivos del crédito se obtendrán de un sistema de gestión de documentos o de la base de datos.
 const files = [
@@ -147,6 +147,8 @@ export default function CreditDetailPage({
 }) {
   // Estado para controlar la visibilidad del panel lateral.
   const [isPanelVisible, setIsPanelVisible] = useState(true);
+  // Estado para almacenar el tipo de documento seleccionado en el generador.
+  const [selectedDocument, setSelectedDocument] = useState('pagare');
   // $$$ CONECTOR MYSQL: Busca el crédito. Esto será una consulta a la base de datos (SELECT * FROM creditos WHERE id_operacion = ...).
   const credit = credits.find((c) => c.operationNumber === params.id);
 
@@ -297,36 +299,28 @@ export default function CreditDetailPage({
                 Crea los documentos y reportes necesarios para el crédito.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <CardContent>
               {/* $$$ CONECTOR ERP: La generación de estos documentos puede requerir datos del ERP o registrar la acción en él. */}
-              <Button variant="outline">
-                <FileJson className="mr-2 h-4 w-4" />
-                Pagaré
-              </Button>
-              <Button variant="outline">
-                <FileSignature className="mr-2 h-4 w-4" />
-                Autorización
-              </Button>
-              <Button variant="outline">
-                <Receipt className="mr-2 h-4 w-4" />
-                Balance
-              </Button>
-              <Button variant="outline">
-                <FileBadge className="mr-2 h-4 w-4" />
-                Certificación
-              </Button>
-              <Button variant="outline">
-                <Gavel className="mr-2 h-4 w-4" />
-                Cobro Judicial
-              </Button>
-               <Button variant="outline">
-                <UserCog className="mr-2 h-4 w-4" />
-                NUEVO TRABAJO
-              </Button>
-               <Button variant="outline">
-                <Scale className="mr-2 h-4 w-4" />
-                Embargo
-              </Button>
+              <div className="flex w-full items-end gap-2">
+                <div className="flex-grow space-y-2">
+                  <Label htmlFor="document-type">Tipo de Documento</Label>
+                   <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                    <SelectTrigger id="document-type">
+                      <SelectValue placeholder="Seleccione un documento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pagare">Pagaré</SelectItem>
+                      <SelectItem value="autorizacion">Autorización</SelectItem>
+                      <SelectItem value="balance">Balance</SelectItem>
+                      <SelectItem value="certificacion">Certificación</SelectItem>
+                      <SelectItem value="cobro_judicial">Cobro Judicial</SelectItem>
+                      <SelectItem value="nuevo_trabajo">NUEVO TRABAJO</SelectItem>
+                      <SelectItem value="embargo">Embargo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button>GENERAR</Button>
+              </div>
             </CardContent>
           </Card>
 
