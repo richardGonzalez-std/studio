@@ -29,7 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { patronos, Patrono } from '@/lib/data';
+import { patronos, Patrono, deductoras, Deductora } from '@/lib/data';
 
 export default function ConfiguracionPage() {
   const { toast } = useToast();
@@ -80,6 +80,7 @@ export default function ConfiguracionPage() {
       <TabsList className="mb-4">
         <TabsTrigger value="prestamos">Préstamos</TabsTrigger>
         <TabsTrigger value="patronos">Patronos</TabsTrigger>
+        <TabsTrigger value="deductoras">Deductoras</TabsTrigger>
         <TabsTrigger value="api">API ERP</TabsTrigger>
       </TabsList>
       <TabsContent value="prestamos">
@@ -259,6 +260,68 @@ export default function ConfiguracionPage() {
                     <TableCell className="font-medium">{patrono.name}</TableCell>
                     <TableCell>{patrono.category}</TableCell>
                     <TableCell>{patrono.paymentDate}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Alternar menú</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </TabsContent>
+       <TabsContent value="deductoras">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                  <CardTitle>Entidades Deductoras</CardTitle>
+                  <CardDescription>
+                    Gestiona las cooperativas y entidades que procesan las deducciones.
+                  </CardDescription>
+              </div>
+               <Button size="sm" className="gap-1">
+                    <PlusCircle className="h-4 w-4" />
+                    Agregar Deductora
+                </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+             <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre de la Deductora</TableHead>
+                  <TableHead>Fecha de Cobro</TableHead>
+                  <TableHead className="text-right">Comisión (%)</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Acciones</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deductoras.map((deductora) => (
+                  <TableRow key={deductora.id}>
+                    <TableCell className="font-medium">{deductora.name}</TableCell>
+                    <TableCell>{deductora.paymentDate}</TableCell>
+                    <TableCell className="text-right font-mono">{deductora.commission.toFixed(2)}%</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

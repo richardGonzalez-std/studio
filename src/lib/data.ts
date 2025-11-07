@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -188,6 +189,14 @@ export type Patrono = {
   paymentDate: string;
 };
 
+export type Deductora = {
+  id: string;
+  name: string;
+  paymentDate: string;
+  commission: number;
+};
+
+
 export const users: User[] = [
     { id: 'STF001', name: 'Jorge Ortiz Solís', email: 'jorge@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff1/40/40' },
     { id: 'STF002', name: 'Raizza Mildrey Arocena', email: 'raizza@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff2/40/40' },
@@ -369,4 +378,12 @@ export const patronos: Patrono[] = [
   { id: 'PAT018', name: 'Ministerio de Trabajo y Seguridad Social', category: 'Ministerio', paymentDate: 'Quincenal (13 y 28)' },
   { id: 'PAT019', name: 'Ministerio de Seguridad Pública', category: 'Ministerio', paymentDate: 'Quincenal (13 y 28)' },
   { id: 'PAT020', name: 'Junta de Protección Social', category: 'Institución Autónoma', paymentDate: 'Quincenal (10 y 25)' },
+];
+
+export const deductoras: Deductora[] = [
+  { id: 'DED001', name: 'CoopeNacional', paymentDate: 'Mensual (día 20)', commission: 1.5 },
+  { id: 'DED002', name: 'Coope San Gabriel', paymentDate: 'Quincenal (10 y 25)', commission: 1.75 },
+  { id: 'DED003', name: 'Coope Ande #5', paymentDate: 'Quincenal (14 y 29)', commission: 1.25 },
+  { id: 'DED004', name: 'CS Magisterio', paymentDate: 'Quincenal (12 y 27)', commission: 2.0 },
+  { id: 'DED005', name: 'CoopeJudicial', paymentDate: 'Mensual (día 22)', commission: 1.0 },
 ];
