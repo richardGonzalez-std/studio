@@ -12,8 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { CheckCircle } from 'lucide-react';
 
 export default function ConfiguracionPage() {
+  const { toast } = useToast();
+
   // Estado para el Crédito Regular
   const [regularConfig, setRegularConfig] = useState({
     minAmount: '500000',
@@ -40,6 +44,19 @@ export default function ConfiguracionPage() {
   const handleMicroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setMicroConfig((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSave = (creditType: 'Crédito Regular' | 'Micro-crédito') => {
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <span className="font-semibold">Parámetros Guardados</span>
+        </div>
+      ),
+      description: `La configuración para ${creditType} ha sido actualizada.`,
+      duration: 3000,
+    });
   };
 
   return (
@@ -117,7 +134,7 @@ export default function ConfiguracionPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button>Guardar Cambios</Button>
+              <Button onClick={() => handleSave('Crédito Regular')}>Guardar Cambios</Button>
             </CardFooter>
           </Card>
 
@@ -187,7 +204,7 @@ export default function ConfiguracionPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button>Guardar Cambios</Button>
+              <Button onClick={() => handleSave('Micro-crédito')}>Guardar Cambios</Button>
             </CardFooter>
           </Card>
         </div>
