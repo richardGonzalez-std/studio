@@ -39,11 +39,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  */
 export default function ClientesPage() {
   return (
-    <Tabs defaultValue="clientes">
+    <Tabs defaultValue="leads">
       <div className="flex items-center justify-between mb-4">
         <TabsList>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-2">
             {/* $$$ CONECTOR MYSQL: La acción de este botón creará un nuevo registro en la tabla de clientes o leads. */}
@@ -53,6 +53,19 @@ export default function ClientesPage() {
             </Button>
         </div>
       </div>
+      <TabsContent value="leads">
+        <Card>
+          <CardHeader>
+            <CardTitle>Leads</CardTitle>
+            <CardDescription>
+                Gestiona los leads o clientes potenciales.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LeadsTable />
+          </CardContent>
+        </Card>
+      </TabsContent>
       <TabsContent value="clientes">
         <Card>
           <CardHeader>
@@ -63,19 +76,6 @@ export default function ClientesPage() {
           </CardHeader>
           <CardContent>
             <ClientsTable />
-          </CardContent>
-        </Card>
-      </TabsContent>
-       <TabsContent value="leads">
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads</CardTitle>
-            <CardDescription>
-                Gestiona los leads o clientes potenciales.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LeadsTable />
           </CardContent>
         </Card>
       </TabsContent>
