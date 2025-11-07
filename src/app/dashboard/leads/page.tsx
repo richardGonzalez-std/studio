@@ -54,6 +54,7 @@ export default function LeadsPage() {
               <TableHead>Lead</TableHead>
               <TableHead>Cédula</TableHead>
               <TableHead className="hidden md:table-cell">Contacto</TableHead>
+              <TableHead className="hidden md:table-cell">Asignado a</TableHead>
               <TableHead className="hidden md:table-cell">Registrado El</TableHead>
               <TableHead>
                 <span className="sr-only">Acciones</span>
@@ -78,6 +79,7 @@ export default function LeadsPage() {
                     <div className="text-sm text-muted-foreground">{lead.email}</div>
                     <div className="text-sm text-muted-foreground">{lead.phone}</div>
                 </TableCell>
+                <TableCell className="hidden md:table-cell">{lead.assignedTo}</TableCell>
                 <TableCell className="hidden md:table-cell">{lead.registeredOn}</TableCell>
                 <TableCell>
                   {/* Menú desplegable con acciones para cada lead. */}
