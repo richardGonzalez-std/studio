@@ -10,7 +10,6 @@ import {
   PanelRightOpen,
   ClipboardCheck,
   Receipt,
-  FileBadge,
   Gavel,
   UserCog,
   Scale,
@@ -314,7 +313,7 @@ export default function CreditDetailPage({
                       <SelectItem value="balance">Balance</SelectItem>
                       <SelectItem value="certificacion">Certificación</SelectItem>
                       <SelectItem value="cobro_judicial">Cobro Judicial</SelectItem>
-                      <SelectItem value="nuevo_trabajo">NUEVO TRABAJO</SelectItem>
+                      <SelectItem value="cambio_patrono">Cambio de Patrono</SelectItem>
                       <SelectItem value="embargo">Embargo</SelectItem>
                     </SelectContent>
                   </Select>
