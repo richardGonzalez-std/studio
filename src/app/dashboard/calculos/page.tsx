@@ -58,11 +58,10 @@ export default function CalculosPage() {
    * Actualiza la tasa de interés en el formulario según la configuración del tipo de crédito seleccionado.
    */
   useEffect(() => {
-    if (creditType === 'regular') {
-      setRate(creditConfigs.regular.interestRate.toString());
-    } else {
-      setRate(creditConfigs.micro.interestRate.toString());
-    }
+    // Cuando el usuario cambia el tipo de crédito (regular o micro),
+    // buscamos la tasa de interés correspondiente en nuestro objeto de configuración
+    // y actualizamos el estado 'rate' del formulario.
+    setRate(creditConfigs[creditType].interestRate.toString());
   }, [creditType]);
 
   /**
