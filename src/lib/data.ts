@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -5,7 +6,7 @@ export type User = {
   email: string;
   phone: string;
   status: 'Lead' | 'Oportunidad' | 'Cliente';
-  clientStatus?: 'Activo' | 'Suspendido';
+  clientStatus?: 'Activo' | 'Moroso' | 'En cobro' | 'Fallecido' | 'Inactivo';
   unsignedCreditId?: string;
   activeCredits?: number;
   registeredOn: string;
@@ -58,7 +59,7 @@ export type Courier = {
 
 export type PendingPickup = {
   id: string;
-  creditId: string;
+  caseId: string;
   clientName: string;
   branchId: string;
   branchName: string;
@@ -77,7 +78,9 @@ export type Route = {
     branchId: string;
     branchName: string;
     address: string;
-    pickups: PendingPickup[];
+    pickups: {
+        caseId: string;
+    }[];
   }[];
 };
 
@@ -85,7 +88,7 @@ export type Conversation = {
   id: string;
   name: string;
   avatarUrl: string;
-  caseId: string; // Corresponds to operationNumber
+  caseId: string;
   lastMessage: string;
   time: string;
   status: 'Abierto' | 'Resuelto';
@@ -133,7 +136,7 @@ export type UndefinedNotification = {
 export type Task = {
   id: string;
   title: string;
-  caseId: string; // Corresponds to operationNumber
+  caseId: string;
   assignedTo: string;
   dueDate: string;
   priority: 'Alta' | 'Media' | 'Baja';
@@ -142,12 +145,14 @@ export type Task = {
 
 
 export const users: User[] = [
-    { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Cliente', clientStatus: 'Suspendido', unsignedCreditId: 'CR-002', activeCredits: 1, registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
+    { id: 'USR001', name: 'Ana Silva Rojas', cedula: '1-1234-5678', email: 'ana.silva@example.com', phone: '8765-4321', status: 'Cliente', clientStatus: 'Moroso', unsignedCreditId: 'CR-002', activeCredits: 1, registeredOn: '2023-10-26', avatarUrl: 'https://picsum.photos/seed/avatar1/40/40' },
     { id: 'USR002', name: 'Bruno Costa Marin', cedula: '2-0987-6543', email: 'bruno.costa@example.com', phone: '6123-4567', status: 'Oportunidad', registeredOn: '2023-10-25', avatarUrl: 'https://picsum.photos/seed/avatar2/40/40' },
     { id: 'USR003', name: 'Carla Díaz Solano', cedula: '3-1111-2222', email: 'carla.dias@example.com', phone: '7555-4444', status: 'Lead', registeredOn: '2023-10-27', avatarUrl: 'https://picsum.photos/seed/avatar3/40/40' },
     { id: 'USR004', name: 'Daniel Alves Mora', cedula: '4-2222-3333', email: 'daniel.alves@example.com', phone: '5432-1876', status: 'Lead', registeredOn: '2023-10-24', avatarUrl: 'https://picsum.photos/seed/avatar4/40/40' },
     { id: 'USR005', name: 'Beatriz Lima Fernández', cedula: '5-3333-4444', email: 'beatriz.lima@example.com', phone: '8877-6655', status: 'Oportunidad', registeredOn: '2023-10-28', avatarUrl: 'https://picsum.photos/seed/avatar5/40/40' },
     { id: 'USR006', name: 'John Doe', cedula: '6-4444-5555', email: 'john.doe@example.com', phone: '1122-3344', status: 'Cliente', clientStatus: 'Activo', activeCredits: 1, registeredOn: '2023-10-29', avatarUrl: 'https://picsum.photos/seed/avatarJD/40/40' },
+    { id: 'USR007', name: 'Jane Smith', cedula: '7-5555-6666', email: 'jane.smith@example.com', phone: '9988-7766', status: 'Cliente', clientStatus: 'En cobro', activeCredits: 1, registeredOn: '2023-09-15', avatarUrl: 'https://picsum.photos/seed/avatarJS/40/40' },
+    { id: 'USR008', name: 'Peter Jones', cedula: '8-6666-7777', email: 'peter.jones@example.com', phone: '6677-8899', status: 'Cliente', clientStatus: 'Inactivo', activeCredits: 0, registeredOn: '2022-08-20', avatarUrl: 'https://picsum.photos/seed/avatarPJ/40/40' },
   ];
   
 export const staff: Staff[] = [
@@ -166,8 +171,8 @@ export const opportunities: Opportunity[] = [
 export const credits: Credit[] = [
     { operationNumber: 'CR-001', debtorName: 'John Doe', debtorId: '6-4444-5555', employer: 'Ministerio de Educación Pública', type: 'Regular', amount: 3000000, balance: 2500000, fee: 150000, rate: 18, term: 24, status: 'Al día', overdueFees: 0, creationDate: '2023-01-15', dueDate: '2025-01-15', deductingEntity: 'CoopeAnde' },
     { operationNumber: 'CR-002', debtorName: 'Ana Silva Rojas', debtorId: '1-1234-5678', employer: 'Caja Costarricense de Seguro Social', type: 'Micro-crédito', amount: 800000, balance: 450000, fee: 75000, rate: 24, term: 12, status: 'En mora', overdueFees: 1, daysInArrears: 25, creationDate: '2023-06-20', dueDate: '2024-06-20', deductingEntity: 'CS Magisterio' },
-    { operationNumber: 'CR-003', debtorName: 'Some One', debtorId: '9-0123-0456', employer: 'Poder Judicial', type: 'Regular', amount: 7000000, balance: 0, fee: 350000, rate: 20, term: 36, status: 'Cancelado', overdueFees: 0, creationDate: '2021-02-10', dueDate: '2024-02-10', deductingEntity: 'CoopeJudicial' },
-    { operationNumber: 'CR-004', debtorName: 'Another Person', debtorId: '8-0987-0654', employer: 'Instituto Costarricense de Electricidad', type: 'Regular', amount: 1000000, balance: 100000, fee: 100000, rate: 22, term: 12, status: 'En mora', overdueFees: 3, daysInArrears: 85, creationDate: '2023-03-01', dueDate: '2024-03-01', deductingEntity: 'CoopeAnde' },
+    { operationNumber: 'CR-003', debtorName: 'Jane Smith', debtorId: '7-5555-6666', employer: 'Poder Judicial', type: 'Regular', amount: 7000000, balance: 0, fee: 350000, rate: 20, term: 36, status: 'Cancelado', overdueFees: 0, creationDate: '2021-02-10', dueDate: '2024-02-10', deductingEntity: 'CoopeJudicial' },
+    { operationNumber: 'CR-004', debtorName: 'Ana Silva Rojas', debtorId: '1-1234-5678', employer: 'Instituto Costarricense de Electricidad', type: 'Regular', amount: 1000000, balance: 100000, fee: 100000, rate: 22, term: 12, status: 'En cobro judicial', overdueFees: 3, daysInArrears: 85, creationDate: '2023-03-01', dueDate: '2024-03-01', deductingEntity: 'CoopeAnde' },
 ];
 
 export const notifications = [
@@ -183,7 +188,7 @@ export const couriers: Courier[] = [
 ];
 
 export const pendingPickups: PendingPickup[] = [
-  { id: 'PICK01', creditId: 'CR-001', clientName: 'John Doe', branchId: 'BRH001', branchName: 'Oficina Central', documentCount: 2, status: 'Pendiente de Retiro' },
+  { id: 'PICK01', caseId: 'CR-001', clientName: 'John Doe', branchId: 'BRH001', branchName: 'Oficina Central', documentCount: 2, status: 'Pendiente de Retiro' },
 ];
 
 export const routes: Route[] = [
@@ -199,7 +204,7 @@ export const routes: Route[] = [
         branchId: 'BRH001',
         branchName: 'Oficina Central',
         address: 'San José, San José',
-        pickups: pendingPickups.filter(p => p.branchId === 'BRH001')
+        pickups: [{ caseId: 'CR-001' }]
       },
     ]
   },
@@ -222,9 +227,9 @@ export const internalNotes: InternalNote[] = [
 ];
 
 export const judicialNotifications: JudicialNotification[] = [
-    { id: 'NOT001', expediente: 'SJ-2023-12345', acto: 'Notificación de demanda', fecha: '2023-11-20', status: 'Leída', asignadaA: 'Sistema' },
-    { id: 'NOT002', expediente: 'CA-2023-54321', acto: 'Prevención', fecha: '2023-11-21', status: 'Pendiente', asignadaA: 'Freddy Bravo Chacón' },
-    { id: 'NOT003', expediente: 'AL-2023-98765', acto: 'Resolución', fecha: '2023-11-19', status: 'Leída', asignadaA: 'Sistema' },
+    { id: 'NOT001', expediente: '23-012345-1027-CA', acto: 'Notificación de demanda', fecha: '2023-11-20', status: 'Leída', asignadaA: 'Sistema' },
+    { id: 'NOT002', expediente: '23-000543-1016-CA', acto: 'Prevención', fecha: '2023-11-21', status: 'Pendiente', asignadaA: 'Freddy Bravo Chacón' },
+    { id: 'NOT003', expediente: '23-009876-0163-CI', acto: 'Resolución', fecha: '2023-11-19', status: 'Leída', asignadaA: 'Sistema' },
 ];
   
 export const undefinedNotifications: UndefinedNotification[] = [
@@ -233,7 +238,17 @@ export const undefinedNotifications: UndefinedNotification[] = [
 ];
 
 export const tasks: Task[] = [
-  { id: 'TSK001', title: 'Resolver prevención en expediente CA-2023-54321', caseId: 'CR-004', assignedTo: 'Freddy Bravo Chacón', dueDate: '2023-11-23', priority: 'Alta', status: 'Pendiente' },
+  { id: 'TSK001', title: 'Resolver prevención en expediente 23-000543-1016-CA', caseId: 'CR-004', assignedTo: 'Freddy Bravo Chacón', dueDate: '2023-11-23', priority: 'Alta', status: 'Pendiente' },
   { id: 'TSK002', title: 'Contactar a Ana Silva para arreglo de pago', caseId: 'CR-002', assignedTo: 'Carolina Chavarría Arley', dueDate: '2023-11-25', priority: 'Media', status: 'En Progreso' },
   { id: 'TSK003', title: 'Preparar documentos para nuevo crédito de Bruno Costa', caseId: 'OPP001', assignedTo: 'Richard Milán Vargas', dueDate: '2023-11-28', priority: 'Media', status: 'Pendiente' },
+];
+
+export const branches = [
+    { id: 'BRH001', name: 'Oficina Central', address: 'San José, Mata Redonda', manager: 'Jorge Ortiz Solís' },
+    { id: 'BRH002', name: 'Punto Autorizado #2', address: 'Heredia, Centro', manager: 'Richard Milán Vargas' },
+];
+
+export const volunteers = [
+  { id: 'VOL001', name: 'Elena Ramírez', email: 'elena.r@email.com', expertise: 'Derecho Administrativo', availability: 'Lunes y Miércoles (tardes)', avatarUrl: 'https://picsum.photos/seed/volunteer1/40/40' },
+  { id: 'VOL002', name: 'Roberto Chen', email: 'roberto.c@email.com', expertise: 'Derecho Constitucional', availability: 'Fines de semana', avatarUrl: 'https://picsum.photos/seed/volunteer2/40/40' },
 ];

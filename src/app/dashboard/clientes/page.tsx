@@ -25,14 +25,21 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { users } from '@/lib/data';
+import { users, User } from '@/lib/data';
 import Link from 'next/link';
 
 export default function ClientesPage() {
   const clientes = users.filter((u) => u.status === 'Cliente');
 
-  const getStatusVariant = (status: 'Activo' | 'Suspendido') => {
-    return status === 'Activo' ? 'default' : 'destructive';
+  const getStatusVariant = (status: User['clientStatus']) => {
+    switch (status) {
+        case 'Activo': return 'default';
+        case 'Moroso': return 'destructive';
+        case 'En cobro': return 'destructive';
+        case 'Inactivo': return 'secondary';
+        case 'Fallecido': return 'outline';
+        default: return 'outline';
+    }
   };
 
   return (
@@ -102,22 +109,10 @@ export default function ClientesPage() {
                 </TableCell>
                 <TableCell>
                   {user.clientStatus &&
-                    (user.clientStatus === 'Suspendido' &&
-                    user.unsignedCreditId ? (
-                      <Button variant="link" asChild className="h-auto p-0">
-                        <Link
-                          href={`/dashboard/creditos/${user.unsignedCreditId.toLowerCase()}`}
-                        >
-                          <Badge variant={getStatusVariant(user.clientStatus)}>
-                            {user.clientStatus}
-                          </Badge>
-                        </Link>
-                      </Button>
-                    ) : (
                       <Badge variant={getStatusVariant(user.clientStatus)}>
                         {user.clientStatus}
                       </Badge>
-                    ))}
+                  }
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {user.registeredOn}
