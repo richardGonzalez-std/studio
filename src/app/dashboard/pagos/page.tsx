@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Upload, PlusCircle, Receipt } from 'lucide-react';
+import { Upload, PlusCircle, Receipt, AlertTriangle } from 'lucide-react';
 import { payments, Payment } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -59,6 +59,7 @@ export default function PagosPage() {
                     <TableHead>Operación</TableHead>
                     <TableHead>Deudor</TableHead>
                     <TableHead className="text-right">Monto Pagado</TableHead>
+                    <TableHead className="text-right">Diferencia</TableHead>
                     <TableHead>Fecha de Pago</TableHead>
                     <TableHead>Fuente</TableHead>
                     <TableHead>
@@ -78,6 +79,14 @@ export default function PagosPage() {
                         <TableCell className="text-right font-mono">
                             ₡{payment.amount.toLocaleString('es-CR')}
                         </TableCell>
+                        <TableCell className="text-right font-mono">
+                            {payment.difference ? (
+                                <div className="flex items-center justify-end gap-2 text-destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                   (₡{payment.difference.toLocaleString('es-CR')})
+                                </div>
+                            ) : '-'}
+                        </TableCell>
                         <TableCell>{payment.paymentDate}</TableCell>
                         <TableCell>
                             <Badge variant={getSourceVariant(payment.source)}>{payment.source}</Badge>
@@ -96,5 +105,3 @@ export default function PagosPage() {
     </Card>
   );
 }
-
-    

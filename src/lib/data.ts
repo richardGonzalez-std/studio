@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -175,6 +176,7 @@ export type Payment = {
   debtorName: string;
   paymentDate: string;
   amount: number;
+  difference?: number;
   source: 'Planilla' | 'Ventanilla' | 'Transferencia';
 };
 
@@ -332,10 +334,8 @@ export const cases: Case[] = [
 
 export const payments: Payment[] = [
     { id: 'PAY001', operationNumber: 'CR-001', debtorName: 'John Doe', paymentDate: '2023-11-01', amount: 150000, source: 'Planilla' },
-    { id: 'PAY002', operationNumber: 'CR-005', debtorName: 'Lucía Méndez', paymentDate: '2023-11-01', amount: 200000, source: 'Planilla' },
+    { id: 'PAY002', operationNumber: 'CR-005', debtorName: 'Lucía Méndez', paymentDate: '2023-11-01', amount: 195000, difference: 5000, source: 'Planilla' },
     { id: 'PAY003', operationNumber: 'CR-006', debtorName: 'Carlos Fernández', paymentDate: '2023-11-02', amount: 60000, source: 'Planilla' },
     { id: 'PAY004', operationNumber: 'MC-001', debtorName: 'Camila Gómez', paymentDate: '2023-11-05', amount: 50000, source: 'Ventanilla' },
-    { id: 'PAY005', operationNumber: 'CR-002', debtorName: 'Ana Silva Rojas', paymentDate: '2023-11-06', amount: 75000, source: 'Transferencia' },
+    { id: 'PAY005', operationNumber: 'CR-002', debtorName: 'Ana Silva Rojas', paymentDate: '2023-11-06', amount: 70000, difference: 5000, source: 'Transferencia' },
 ];
-
-    
