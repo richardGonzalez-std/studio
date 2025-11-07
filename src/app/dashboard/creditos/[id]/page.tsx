@@ -12,7 +12,6 @@ import {
   Receipt,
   Gavel,
   UserCog,
-  Scale,
   FileSignature,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -135,21 +134,13 @@ function CreditTasks({ creditId }: { creditId: string }) {
   );
 }
 
-/**
- * Página principal de detalle de un crédito.
- * @param {{ params: { id: string } }} props - Propiedades pasadas por Next.js, incluyendo el ID del crédito desde la URL.
- */
-export default function CreditDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+function CreditDetailClient({ id }: { id: string }) {
   // Estado para controlar la visibilidad del panel lateral.
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   // Estado para almacenar el tipo de documento seleccionado en el generador.
   const [selectedDocument, setSelectedDocument] = useState('pagare');
   // $$$ CONECTOR MYSQL: Busca el crédito. Esto será una consulta a la base de datos (SELECT * FROM creditos WHERE id_operacion = ...).
-  const credit = credits.find((c) => c.operationNumber === params.id);
+  const credit = credits.find((c) => c.operationNumber === id);
 
   // Si no se encuentra el crédito, muestra un mensaje de error.
   if (!credit) {
@@ -396,4 +387,16 @@ export default function CreditDetailPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Página principal de detalle de un crédito.
+ * @param {{ params: { id: string } }} props - Propiedades pasadas por Next.js, incluyendo el ID del crédito desde la URL.
+ */
+export default function CreditDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  return <CreditDetailClient id={params.id} />
 }

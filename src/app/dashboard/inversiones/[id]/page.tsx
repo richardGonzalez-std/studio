@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { investments } from '@/lib/data';
+import { investments, Investment } from '@/lib/data';
 import {
   Select,
   SelectContent,
@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export default function InvestmentDetailPage({ params }: { params: { id: string } }) {
-  const investment = investments.find((i) => i.investmentNumber === params.id);
+function InvestmentDetailClient({ id }: { id: string }) {
+  const investment = investments.find((i) => i.investmentNumber === id);
 
   if (!investment) {
     return (
@@ -99,7 +99,8 @@ export default function InvestmentDetailPage({ params }: { params: { id: string 
             </div>
              <div className="grid gap-1">
               <h3 className="font-medium">Intereses</h3>
-              <p className="text-muted-foreground">
+               <p className="text-muted-foreground">
+                Tasa Anual: {investment.rate}% <br/>
                 Periodicidad: {investment.interestFrequency}
               </p>
             </div>
@@ -134,4 +135,8 @@ export default function InvestmentDetailPage({ params }: { params: { id: string 
       </div>
     </div>
   );
+}
+
+export default function InvestmentDetailPage({ params }: { params: { id: string } }) {
+  return <InvestmentDetailClient id={params.id} />
 }
