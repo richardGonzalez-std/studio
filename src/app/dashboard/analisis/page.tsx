@@ -1,4 +1,5 @@
 // Importamos los componentes e íconos necesarios.
+'use client';
 import {
   Card,
   CardContent,
@@ -15,13 +16,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { leads, Lead } from '@/lib/data';
+import { leads, opportunities, Lead, Opportunity } from '@/lib/data';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 
 // Función para obtener la variante de la insignia según el puesto.
 const getPuestoVariant = (puesto: Lead['puesto']) => {
   return puesto === 'En Propiedad' ? 'default' : 'secondary';
 };
+
+const getStatusVariant = (status: Opportunity['status'] | 'Sin Iniciar') => {
+    switch (status) {
+        case 'Convertido': return 'default';
+        case 'Aceptada': return 'default';
+        case 'En proceso': return 'secondary';
+        case 'Rechazada': return 'destructive';
+        default: return 'outline';
+    }
+}
+
 
 export default function AnalisisPage() {
   return (
@@ -44,10 +56,15 @@ export default function AnalisisPage() {
               <TableHead>Antigüedad</TableHead>
               <TableHead className="text-right">Salario Base</TableHead>
               <TableHead className="text-right">Salario Neto</TableHead>
+              <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.map((lead) => (
+            {leads.map((lead) => {
+              const opportunity = opportunities.find(op => op.leadCedula === lead.cedula);
+              const status = opportunity ? opportunity.status : 'Sin Iniciar';
+
+              return (
               <TableRow key={lead.id}>
                 <TableCell className="font-medium">{lead.name}</TableCell>
                 <TableCell>{lead.cedula}</TableCell>
@@ -76,8 +93,11 @@ export default function AnalisisPage() {
                 <TableCell className="text-right font-mono font-semibold">
                   ₡{lead.salarioNeto.toLocaleString('de-DE')}
                 </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(status)}>{status}</Badge>
+                </TableCell>
               </TableRow>
-            ))}
+            )})}
           </TableBody>
         </Table>
       </CardContent>
