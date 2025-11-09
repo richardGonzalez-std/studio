@@ -13,6 +13,10 @@ import {
   Calendar,
   LayoutGrid,
   FilterX,
+  Paperclip,
+  FileText,
+  ImageIcon,
+  Download,
 } from 'lucide-react';
 import {
   Card,
@@ -34,7 +38,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { projects, type Project, type Milestone, type ProjectTask, type Comment, staff } from '@/lib/data';
+import { projects, type Project, type Milestone, type ProjectTask, type Comment, type Attachment, staff } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -121,6 +125,14 @@ const MilestoneSummaryCard = React.memo(function MilestoneSummaryCard({
 const getAssigneeAvatar = (assigneeName: string) => {
     const user = staff.find(s => s.name === assigneeName);
     return user ? user.avatarUrl : 'https://picsum.photos/seed/avatar-fallback/40/40';
+}
+
+const getFileIcon = (type: Attachment['type']) => {
+    switch(type) {
+        case 'image': return <ImageIcon className="h-5 w-5 text-primary" />;
+        case 'pdf': return <FileText className="h-5 w-5 text-destructive" />;
+        default: return <Paperclip className="h-5 w-5 text-muted-foreground" />;
+    }
 }
 
 /**
@@ -404,7 +416,7 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
         </Tabs>
       </div>
        {selectedTask && (
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{selectedTask.title}</DialogTitle>
                     <DialogDescription>
@@ -412,48 +424,91 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
                         <Badge variant={getPriorityVariant(selectedTask.priority)}>{selectedTask.priority}</Badge>
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-2">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedTask.details}</p>
-                </div>
-                <Separator />
-                <div className="space-y-4">
-                    <h4 className="text-sm font-medium flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Comentarios
-                    </h4>
-                    <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
-                        {selectedTask.comments?.length > 0 ? (
-                            selectedTask.comments.map(comment => (
-                                <div key={comment.id} className="flex items-start gap-3">
-                                    <Avatar className="h-8 w-8 border">
-                                        <AvatarImage src={comment.avatarUrl} />
-                                        <AvatarFallback>{comment.author.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 rounded-md bg-muted/50 p-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-xs font-semibold">{comment.author}</p>
-                                            <p className="text-xs text-muted-foreground">{comment.timestamp}</p>
+                <div className="grid gap-6 py-4">
+                    {/* Detalles de la Tarea */}
+                    <div>
+                        <h4 className="text-sm font-medium mb-2">Detalles</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedTask.details}</p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Archivos Adjuntos */}
+                    <div>
+                        <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                            <Paperclip className="h-4 w-4" />
+                            Archivos Adjuntos
+                        </h4>
+                        <div className="space-y-2">
+                            {selectedTask.attachments?.length > 0 ? (
+                                selectedTask.attachments.map(file => (
+                                    <div key={file.id} className="flex items-center justify-between rounded-md border p-2">
+                                        <div className="flex items-center gap-3">
+                                            {getFileIcon(file.type)}
+                                            <div>
+                                                <p className="text-sm font-medium">{file.name}</p>
+                                                <p className="text-xs text-muted-foreground">{file.size}</p>
+                                            </div>
                                         </div>
-                                        <p className="text-sm mt-1">{comment.text}</p>
+                                        <Button variant="ghost" size="icon">
+                                            <Download className="h-4 w-4" />
+                                            <span className="sr-only">Descargar</span>
+                                        </Button>
                                     </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No hay comentarios aún.</p>
-                        )}
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No hay archivos adjuntos.</p>
+                            )}
+                        </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="new-comment" className="sr-only">Nuevo Comentario</Label>
-                        <Textarea 
-                            id="new-comment"
-                            placeholder="Escribe un comentario..."
-                            rows={2}
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                        />
+
+                    <Separator />
+
+                    {/* Comentarios */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4" />
+                            Comentarios
+                        </h4>
+                        <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
+                            {selectedTask.comments?.length > 0 ? (
+                                selectedTask.comments.map(comment => (
+                                    <div key={comment.id} className="flex items-start gap-3">
+                                        <Avatar className="h-8 w-8 border">
+                                            <AvatarImage src={comment.avatarUrl} />
+                                            <AvatarFallback>{comment.author.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 rounded-md bg-muted/50 p-2">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-semibold">{comment.author}</p>
+                                                <p className="text-xs text-muted-foreground">{comment.timestamp}</p>
+                                            </div>
+                                            <p className="text-sm mt-1">{comment.text}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No hay comentarios aún.</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="new-comment" className="sr-only">Nuevo Comentario</Label>
+                            <Textarea 
+                                id="new-comment"
+                                placeholder="Escribe un comentario..."
+                                rows={2}
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
-                <DialogFooter>
+
+                <DialogFooter className="sm:justify-between">
+                    <Button variant="outline">
+                        <Paperclip className="mr-2 h-4 w-4" />
+                        Subir Archivo
+                    </Button>
                     <Button onClick={handleAddComment}>Agregar Comentario</Button>
                 </DialogFooter>
             </DialogContent>

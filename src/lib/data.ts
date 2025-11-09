@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -245,6 +246,14 @@ export type SalesGoal = {
 
 // --- Project Management Data ---
 
+export type Attachment = {
+  id: string;
+  name: string;
+  type: 'image' | 'pdf' | 'zip' | 'file';
+  size: string;
+  url: string;
+};
+
 export type Comment = {
   id: string;
   author: string;
@@ -262,6 +271,7 @@ export type ProjectTask = {
   priority: 'Alta' | 'Media' | 'Baja';
   comments: Comment[];
   assignedTo: string;
+  attachments?: Attachment[];
 };
 
 
@@ -317,7 +327,12 @@ export const projects: Project[] = [
             description: 'Enfocado en la gestión de clientes, leads y oportunidades de negocio.',
             days: 'Días 3-4',
             tasks: [
-              { id: 'T3.1', title: 'Crear modelos y migraciones para `Opportunities`.', dueDate: '2024-11-13', completed: false, details: 'Definir la tabla de oportunidades con su relación con la tabla `leads`.', priority: 'Alta', comments: [], assignedTo: 'Freddy Bravo Chacón' },
+              { id: 'T3.1', title: 'Crear modelos y migraciones para `Opportunities`.', dueDate: '2024-11-13', completed: false, details: 'Definir la tabla de oportunidades con su relación con la tabla `leads`.', priority: 'Alta', comments: [], assignedTo: 'Freddy Bravo Chacón',
+                attachments: [
+                  { id: 'ATT01', name: 'diagrama_db.png', type: 'image', size: '128 KB', url: '#' },
+                  { id: 'ATT02', name: 'especificacion.pdf', type: 'pdf', size: '512 KB', url: '#' },
+                ]
+              },
               { id: 'T3.2', title: 'Implementar los controladores y rutas de API (Resource Controllers) para el CRUD de `Leads` y `Clients`.', dueDate: '2024-11-13', completed: false, details: 'Crear API resources para `Lead` y `Client` para estandarizar la salida JSON. Implementar los métodos index, show, store, update y destroy.', priority: 'Media', comments: [], assignedTo: 'Freddy Bravo Chacón' },
               { id: 'T3.3', title: 'Implementar un endpoint para convertir un `Lead` en `Client` (`POST /api/leads/{id}/convert`).', dueDate: '2024-11-13', completed: false, details: 'La lógica debe crear un nuevo registro de `Client` con los datos del `Lead` y, opcionalmente, eliminar o marcar el lead como convertido.', priority: 'Baja', comments: [], assignedTo: 'Jorge Ortiz Solís' },
               { id: 'T4.1', title: 'Implementar el CRUD para `Opportunities`.', dueDate: '2024-11-14', completed: false, details: 'Crear el Resource Controller y las rutas de API para gestionar las oportunidades.', priority: 'Alta', comments: [], assignedTo: 'Raizza Mildrey Arocena' },
@@ -567,5 +582,6 @@ export const salesGoals: SalesGoal[] = [
 
 
     
+
 
 
