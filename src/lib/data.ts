@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -274,6 +275,7 @@ export type ProjectTask = {
   assignedTo: string;
   attachments?: Attachment[];
   estimatedHours?: number;
+  milestoneId: string;
 };
 
 
@@ -301,46 +303,60 @@ export const projects: Project[] = [
     {
         id: 'PROJ-001',
         name: 'Backend en Laravel',
-        leader: 'Jorge Ortiz Solís',
+        leader: 'Leonardo Gómez',
         leaderAvatar: 'https://picsum.photos/seed/staff1/40/40',
         budget: 15000,
         startDate: '2024-11-11',
-        endDate: '2024-11-22',
+        endDate: '2024-11-30',
         status: 'En Progreso',
         milestones: [
           {
             id: 'HITO1',
-            title: 'Hito 1: Configuración, Autenticación y Modelos Base',
-            description: 'Establecer la base del proyecto y asegurar la autenticación de usuarios.',
-            days: 'Días 1-2',
+            title: 'Hito 1: Configuración, Base de Datos y Autenticación',
+            description: 'Establecer la infraestructura del proyecto, definir la base de datos y asegurar un sistema de autenticación robusto.',
+            days: 'Días 1-3',
             tasks: [
-              { id: 'T1.1', title: 'Inicializar un nuevo proyecto de Laravel.', startDate: '2024-11-11', dueDate: '2024-11-11', completed: true, details: 'Crear un nuevo repositorio y clonar el esqueleto de Laravel. Ejecutar `composer install`.', priority: 'Alta', comments: [], assignedTo: 'Jorge Ortiz Solís' },
-              { id: 'T1.2', title: 'Configurar la conexión a la base de datos MySQL.', startDate: '2024-11-11', dueDate: '2024-11-11', completed: true, details: 'Actualizar el archivo `.env` con las credenciales de la base de datos de desarrollo (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD).', priority: 'Alta', comments: [], assignedTo: 'Jorge Ortiz Solís' },
-              { id: 'T1.3', title: 'Implementar las migraciones de la base de datos para `users`, `clients`, `leads`, `investors`.', startDate: '2024-11-11', dueDate: '2024-11-11', completed: false, details: 'Crear los archivos de migración para cada tabla, definiendo los campos y tipos de datos especificados en el script SQL proporcionado. Incluir claves foráneas y relaciones.', priority: 'Media', comments: [], assignedTo: 'Freddy Bravo Chacón' },
-              { id: 'T1.4', title: 'Crear los modelos Eloquent correspondientes.', startDate: '2024-11-11', dueDate: '2024-11-11', completed: false, details: 'Generar los modelos `User`, `Client`, `Lead`, e `Investor`. Definir las propiedades `fillable` y las relaciones (`hasMany`, `belongsTo`, etc.).', priority: 'Media', comments: [], assignedTo: 'Freddy Bravo Chacón' },
-              { id: 'T2.1', title: 'Instalar y configurar Laravel Sanctum para la autenticación de SPA.', startDate: '2024-11-12', dueDate: '2024-11-12', completed: false, details: 'Seguir la guía de instalación de Sanctum. Publicar la migración de Sanctum y ejecutar `php artisan migrate`. Añadir el middleware a `app/Http/Kernel.php`.', priority: 'Alta', comments: [], assignedTo: 'Richard Milán Vargas' },
-              { id: 'T2.2', title: 'Crear los endpoints para registro, login (`/login`) y logout (`/logout`).', startDate: '2024-11-12', dueDate: '2024-11-12', completed: false, details: 'Implementar los controladores y rutas necesarios para manejar la autenticación. El login debe devolver un token de API o establecer una cookie de sesión.', priority: 'Baja', comments: [], assignedTo: 'Richard Milán Vargas' },
-              { id: 'T2.3', title: 'Crear un endpoint protegido para obtener los datos del usuario autenticado (`/api/user`).', startDate: '2024-11-12', dueDate: '2024-11-12', completed: false, details: 'Asegurar que la ruta esté protegida con el middleware `auth:sanctum`. Devolver los datos del usuario logueado.', priority: 'Media', comments: [], assignedTo: 'Richard Milán Vargas' },
+              { id: 'T1.1', milestoneId: 'HITO1', title: 'Inicializar y configurar el proyecto Laravel', startDate: '2024-11-11', dueDate: '2024-11-11', completed: false, details: 'Crear un nuevo proyecto Laravel 11. Configurar el archivo .env con las variables de entorno para desarrollo local (APP_NAME, APP_ENV, APP_KEY, DB_CONNECTION).', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T1.2', milestoneId: 'HITO1', title: 'Diseñar y ejecutar migraciones de la base de datos', startDate: '2024-11-11', dueDate: '2024-11-12', completed: false, details: 'Crear los archivos de migración para las tablas principales: `users`, `clients`, `leads`, `investors`, `credits` y `opportunities`. Definir todos los campos, tipos de datos, índices y claves foráneas. Ejecutar `php artisan migrate`.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T1.3', milestoneId: 'HITO1', title: 'Crear los modelos Eloquent con sus relaciones', startDate: '2024-11-12', dueDate: '2024-11-12', completed: false, details: 'Generar los modelos Eloquent para cada tabla creada. Definir las relaciones (`hasMany`, `belongsTo`, etc.) entre los modelos para reflejar la lógica del negocio.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T1.4', milestoneId: 'HITO1', title: 'Implementar autenticación con Laravel Sanctum', startDate: '2024-11-13', dueDate: '2024-11-13', completed: false, details: 'Instalar y configurar Laravel Sanctum. Implementar los endpoints de API para registro, login (`/login`) y logout (`/logout`). El login debe retornar un token para ser usado por el frontend.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
             ]
           },
           {
             id: 'HITO2',
-            title: 'Hito 2: Módulos de Clientes y Oportunidades',
-            description: 'Enfocado en la gestión de clientes, leads y oportunidades de negocio.',
-            days: 'Días 3-4',
+            title: 'Hito 2: Endpoints Core y Lógica de Negocio',
+            description: 'Desarrollar los endpoints CRUD para las entidades principales y la lógica de conversión.',
+            days: 'Días 4-6',
             tasks: [
-              { id: 'T3.1', title: 'Crear modelos y migraciones para `Opportunities`.', startDate: '2024-11-13', dueDate: '2024-11-13', completed: false, details: 'Definir la tabla de oportunidades con su relación con la tabla `leads`.', priority: 'Alta', comments: [], assignedTo: 'Freddy Bravo Chacón',
-                attachments: [
-                  { id: 'ATT01', name: 'diagrama_db.png', type: 'image', size: '128 KB', url: '#' },
-                  { id: 'ATT02', name: 'especificacion.pdf', type: 'pdf', size: '512 KB', url: '#' },
-                ]
-              },
-              { id: 'T3.2', title: 'Implementar los controladores y rutas de API (Resource Controllers) para el CRUD de `Leads` y `Clients`.', startDate: '2024-11-13', dueDate: '2024-11-13', completed: false, details: 'Crear API resources para `Lead` y `Client` para estandarizar la salida JSON. Implementar los métodos index, show, store, update y destroy.', priority: 'Media', comments: [], assignedTo: 'Freddy Bravo Chacón' },
-              { id: 'T3.3', title: 'Implementar un endpoint para convertir un `Lead` en `Client` (`POST /api/leads/{id}/convert`).', startDate: '2024-11-13', dueDate: '2024-11-13', completed: false, details: 'La lógica debe crear un nuevo registro de `Client` con los datos del `Lead` y, opcionalmente, eliminar o marcar el lead como convertido.', priority: 'Baja', comments: [], assignedTo: 'Jorge Ortiz Solís' },
-              { id: 'T4.1', title: 'Implementar el CRUD para `Opportunities`.', startDate: '2024-11-14', dueDate: '2024-11-14', completed: false, details: 'Crear el Resource Controller y las rutas de API para gestionar las oportunidades.', priority: 'Alta', comments: [], assignedTo: 'Raizza Mildrey Arocena' },
-              { id: 'T4.2', title: 'Implementar endpoint para la página de "Análisis" (`GET /api/credit-analysis`).', startDate: '2024-11-14', dueDate: '2024-11-14', completed: false, details: 'Este endpoint debe realizar un join entre `leads` y `opportunities` para devolver la información combinada que se muestra en la tabla de análisis.', priority: 'Media', comments: [], assignedTo: 'Raizza Mildrey Arocena' },
+              { id: 'T2.1', milestoneId: 'HITO2', title: 'Implementar API Resource Controllers para Leads y Clientes', startDate: '2024-11-14', dueDate: '2024-11-15', completed: false, details: 'Crear controladores de recursos de API para `Leads` y `Clients` que manejen las operaciones CRUD (index, show, store, update, destroy). Utilizar API Resources de Laravel para estandarizar las respuestas JSON.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T2.2', milestoneId: 'HITO2', title: 'Desarrollar endpoint de conversión de Lead a Cliente', startDate: '2024-11-15', dueDate: '2024-11-15', completed: false, details: 'Crear el endpoint `POST /api/leads/{id}/convert`. Este debe crear un nuevo `Client` a partir de los datos del `Lead` y marcar el `Lead` como "Convertido".', priority: 'Media', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T2.3', milestoneId: 'HITO2', title: 'Implementar API Resource Controllers para Créditos y Oportunidades', startDate: '2024-11-16', dueDate: '2024-11-18', completed: false, details: 'Crear controladores de recursos de API para `Credits` y `Opportunities`, manejando su ciclo de vida completo a través de los endpoints CRUD correspondientes.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
             ]
           },
+          {
+            id: 'HITO3',
+            title: 'Hito 3: Integración con ERP y Contenerización',
+            description: 'Conectar con el ERP externo para sincronizar datos y preparar la aplicación para despliegue con Docker.',
+            days: 'Días 7-8',
+            tasks: [
+              { id: 'T3.1', milestoneId: 'HITO3', title: 'Desarrollar capa de servicio para API de erp.pep.cr', startDate: '2024-11-19', dueDate: '2024-11-19', completed: false, details: 'Crear una clase de servicio en Laravel para manejar la comunicación con `erp.pep.cr`. Implementar métodos para Contabilidad, RRHH y Tesorería. Usar el cliente HTTP de Laravel y manejar la autenticación y errores de la API externa.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T3.2', milestoneId: 'HITO3', title: 'Crear `Dockerfile` para producción', startDate: '2024-11-20', dueDate: '2024-11-20', completed: false, details: 'Configurar un `Dockerfile` multi-etapa que compile los assets, instale dependencias de PHP y configure un servidor web (Nginx + PHP-FPM) para servir la aplicación Laravel de forma eficiente y segura.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T3.3', milestoneId: 'HITO3', title: 'Configurar `docker-compose.yml` para desarrollo local', startDate: '2024-11-20', dueDate: '2024-11-20', completed: false, details: 'Crear un archivo `docker-compose.yml` que levante los servicios necesarios para el desarrollo: la aplicación Laravel, una base de datos MySQL y Redis para caché/colas.', priority: 'Media', comments: [], assignedTo: 'Ahixel Rojas' },
+            ]
+          },
+          {
+            id: 'HITO4',
+            title: 'Hito 4: Pruebas, Despliegue y Empaquetado',
+            description: 'Asegurar la calidad del código, preparar el despliegue y generar la versión de escritorio.',
+            days: 'Días 9-12',
+            tasks: [
+              { id: 'T4.1', milestoneId: 'HITO4', title: 'Configurar GitHub Actions para CI/CD', startDate: '2024-11-21', dueDate: '2024-11-22', completed: false, details: 'Crear un workflow de GitHub Actions que se active en cada push a la rama `main`. El workflow debe ejecutar tests (PHPUnit) y, si pasan, construir y pushear la imagen Docker a un registro como Docker Hub o GitHub Container Registry.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T4.2', milestoneId: 'HITO4', title: 'Generar Seeders para datos de prueba', startDate: '2024-11-23', dueDate: '2024-11-25', completed: false, details: 'Crear `seeders` de Laravel para poblar la base de datos con datos de prueba realistas para todas las entidades (clientes, créditos, etc.). Esto es crucial para realizar pruebas manuales y automáticas.', priority: 'Media', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T4.3', milestoneId: 'HITO4', title: 'Realizar pruebas de integración y entre navegadores', startDate: '2024-11-26', dueDate: '2024-11-27', completed: false, details: 'Probar el flujo completo de la aplicación (frontend + backend) en los principales navegadores (Chrome, Firefox, Safari) para asegurar la compatibilidad y una experiencia de usuario consistente.', priority: 'Media', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T4.4', milestoneId: 'HITO4', title: 'Investigar y prototipar empaquetado con Tauri', startDate: '2024-11-28', dueDate: '2024-11-29', completed: false, details: 'Dado que el frontend es Next.js, usar Tauri es una opción moderna y de alto rendimiento para empaquetar la aplicación web como un ejecutable de escritorio. Investigar la integración, configurar el `tauri.conf.json` y generar una compilación de prueba para macOS, Windows y Linux.', priority: 'Baja', comments: [], assignedTo: 'Ahixel Rojas' },
+              { id: 'T4.5', milestoneId: 'HITO4', title: 'Preparar documentación final y entregar proyecto', startDate: '2024-11-30', dueDate: '2024-11-30', completed: false, details: 'Documentar la configuración de la API, el proceso de despliegue con Docker y cualquier otra instrucción relevante para el mantenimiento del proyecto. Archivar y entregar el código fuente final.', priority: 'Alta', comments: [], assignedTo: 'Ahixel Rojas' },
+            ]
+          }
         ]
     },
     {
@@ -382,6 +398,8 @@ export const users: User[] = [
     { id: 'STF003', name: 'Freddy Bravo Chacón', email: 'freddy@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff3/40/40' },
     { id: 'STF004', name: 'Richard Milán Vargas', email: 'richard@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff4/40/40' },
     { id: 'STF005', name: 'Carolina Chavarría Arley', email: 'carolina@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff5/40/40' },
+    { id: 'STF006', name: 'Leonardo Gómez', email: 'leonardo@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff6/40/40' },
+    { id: 'STF007', name: 'Ahixel Rojas', email: 'ahixel@crepipep.com', avatarUrl: 'https://picsum.photos/seed/staff7/40/40' },
 ];
 
 export const staff = users;
@@ -584,7 +602,3 @@ export const salesGoals: SalesGoal[] = [
 
 
     
-
-
-
-
