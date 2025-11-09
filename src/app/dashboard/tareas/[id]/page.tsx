@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   CheckCircle,
   Circle,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Card,
@@ -20,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -36,15 +36,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 /**
  * Componente que representa un único hito (Milestone) en el plan del proyecto.
+ * Ahora muestra un resumen y es clicable para ver las tareas.
  */
-const MilestoneCard = React.memo(function MilestoneCard({
+const MilestoneSummaryCard = React.memo(function MilestoneSummaryCard({
   milestone,
-  onTaskToggle,
-  onTaskSelect,
+  onMilestoneSelect,
 }: {
   milestone: Milestone;
-  onTaskToggle: (milestoneId: string, taskId: string) => void;
-  onTaskSelect: (task: ProjectTask) => void;
+  onMilestoneSelect: () => void;
 }) {
   const completedTasks = useMemo(
     () => milestone.tasks.filter((task) => task.completed).length,
@@ -55,19 +54,22 @@ const MilestoneCard = React.memo(function MilestoneCard({
   const isCompleted = progress === 100;
 
   return (
-    <Card className={cn('transition-all', isCompleted && 'bg-muted/60')}>
+    <Card
+      onClick={onMilestoneSelect}
+      className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/50"
+    >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle
             className={cn(
-              'flex items-center gap-2',
+              'flex items-center gap-2 text-lg',
               isCompleted && 'text-muted-foreground'
             )}
           >
             {isCompleted ? (
-              <CheckCircle className="h-6 w-6 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-green-500" />
             ) : (
-              <Circle className="h-6 w-6 text-primary" />
+              <Circle className="h-5 w-5 text-primary" />
             )}
             {milestone.title}
           </CardTitle>
@@ -77,9 +79,8 @@ const MilestoneCard = React.memo(function MilestoneCard({
         </div>
         <CardDescription>{milestone.description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+      <CardContent>
+         <div className="mb-1 flex justify-between text-xs text-muted-foreground">
             <span>Progreso</span>
             <span>
               {completedTasks} de {totalTasks} tareas
@@ -89,46 +90,94 @@ const MilestoneCard = React.memo(function MilestoneCard({
             value={progress}
             aria-label={`Progreso del hito: ${progress.toFixed(0)}%`}
           />
-        </div>
-        <div className="space-y-3">
-          {milestone.tasks.map((task) => (
-            <DialogTrigger key={task.id} asChild>
-              <div
-                onClick={() => onTaskSelect(task)}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-all hover:bg-muted/50"
-              >
-                <Checkbox
-                  id={`task-${task.id}`}
-                  checked={task.completed}
-                  onCheckedChange={() => {
-                    event?.stopPropagation();
-                    onTaskToggle(milestone.id, task.id);
-                  }}
-                  className="mt-1"
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor={`task-${task.id}`}
-                    className={cn(
-                      'cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-                      task.completed && 'text-muted-foreground line-through'
-                    )}
-                  >
-                    {task.title}
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    Entrega: {task.dueDate}
-                  </p>
-                </div>
-              </div>
-            </DialogTrigger>
-          ))}
-        </div>
       </CardContent>
     </Card>
   );
 });
-MilestoneCard.displayName = 'MilestoneCard';
+
+/**
+ * Componente para mostrar los detalles y tareas de un hito seleccionado.
+ */
+const MilestoneDetailView = React.memo(function MilestoneDetailView({
+    milestone,
+    onTaskToggle,
+    onTaskSelect,
+    onBack,
+}: {
+    milestone: Milestone;
+    onTaskToggle: (milestoneId: string, taskId: string) => void;
+    onTaskSelect: (task: ProjectTask) => void;
+    onBack: () => void;
+}) {
+    const completedTasks = milestone.tasks.filter(t => t.completed).length;
+    const totalTasks = milestone.tasks.length;
+    const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <div className="flex items-center gap-2">
+                             <Button variant="outline" size="icon" className="h-7 w-7" onClick={onBack}>
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                            <CardTitle>{milestone.title}</CardTitle>
+                        </div>
+                        <CardDescription className="mt-2 pl-9">{milestone.description}</CardDescription>
+                    </div>
+                     <Badge variant={progress === 100 ? 'secondary' : 'default'}>
+                        {milestone.days}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="mb-4">
+                    <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                        <span>Progreso</span>
+                        <span>{completedTasks} de {totalTasks} tareas</span>
+                    </div>
+                    <Progress value={progress} />
+                </div>
+                 <div className="space-y-3">
+                    {milestone.tasks.map((task) => (
+                        <DialogTrigger key={task.id} asChild>
+                        <div
+                            onClick={() => onTaskSelect(task)}
+                            className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-all hover:bg-muted/50"
+                        >
+                            <Checkbox
+                            id={`task-${task.id}`}
+                            checked={task.completed}
+                            onClick={(e) => e.stopPropagation()} // Evita que el click en el checkbox dispare el click del div
+                            onCheckedChange={() => {
+                                onTaskToggle(milestone.id, task.id);
+                            }}
+                            className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                            <label
+                                htmlFor={`task-${task.id}`}
+                                className={cn(
+                                'cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+                                task.completed && 'text-muted-foreground line-through'
+                                )}
+                            >
+                                {task.title}
+                            </label>
+                            <p className="text-sm text-muted-foreground">
+                                Entrega: {task.dueDate}
+                            </p>
+                            </div>
+                        </div>
+                        </DialogTrigger>
+                    ))}
+                    </div>
+            </CardContent>
+        </Card>
+    )
+})
+
 
 /**
  * Componente principal para la página de detalle de un proyecto.
@@ -138,6 +187,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     projects.find((p) => p.id === params.id)
   );
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
+
 
   if (!project) {
     return (
@@ -167,6 +218,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         }
         return milestone;
       });
+      // Actualizamos el hito seleccionado también si está visible
+      if (selectedMilestone?.id === milestoneId) {
+          const updatedSelectedMilestone = updatedMilestones.find(m => m.id === milestoneId);
+          if (updatedSelectedMilestone) setSelectedMilestone(updatedSelectedMilestone);
+      }
       return { ...currentProject, milestones: updatedMilestones };
     });
   };
@@ -180,6 +236,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     }
     
   const overallProgress = useMemo(() => {
+    if (!project) return 0;
     const totalTasks = project.milestones.reduce((acc, m) => acc + m.tasks.length, 0);
     if (totalTasks === 0) return 0;
     const completedTasks = project.milestones.reduce((acc, m) => acc + m.tasks.filter(t => t.completed).length, 0);
@@ -243,74 +300,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             </CardContent>
         </Card>
 
-        <Tabs defaultValue="hitos">
-          <TabsList>
-            <TabsTrigger value="hitos" className="gap-1">
-                <ListTodo className="h-4 w-4"/>
-                Hitos
-            </TabsTrigger>
-            <TabsTrigger value="tareas" className="gap-1">
-                <ClipboardCheck className="h-4 w-4"/>
-                Todas las Tareas
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="hitos">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        {selectedMilestone ? (
+            <MilestoneDetailView 
+                milestone={selectedMilestone}
+                onTaskToggle={handleTaskToggle}
+                onTaskSelect={handleSelectTask}
+                onBack={() => setSelectedMilestone(null)}
+            />
+        ) : (
+             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
               {project.milestones.map((milestone) => (
-                <MilestoneCard
+                <MilestoneSummaryCard
                   key={milestone.id}
                   milestone={milestone}
-                  onTaskToggle={handleTaskToggle}
-                  onTaskSelect={handleSelectTask}
+                  onMilestoneSelect={() => setSelectedMilestone(milestone)}
                 />
               ))}
             </div>
-          </TabsContent>
-          <TabsContent value="tareas">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Todas las Tareas del Proyecto</CardTitle>
-                    <CardDescription>Lista completa de tareas de todos los hitos.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                    {project.milestones.flatMap(m => m.tasks).map((task) => (
-                         <DialogTrigger key={task.id} asChild>
-                            <div
-                                onClick={() => handleSelectTask(task)}
-                                className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-all hover:bg-muted/50"
-                            >
-                                <Checkbox
-                                    id={`all-task-${task.id}`}
-                                    checked={task.completed}
-                                    onCheckedChange={(checked) => {
-                                        const milestone = project.milestones.find(m => m.tasks.some(t => t.id === task.id));
-                                        if (milestone) {
-                                            event?.stopPropagation();
-                                            handleTaskToggle(milestone.id, task.id);
-                                        }
-                                    }}
-                                    className="mt-1"
-                                />
-                                <div className="grid flex-1 gap-1.5 leading-none">
-                                    <label
-                                    htmlFor={`all-task-${task.id}`}
-                                    className={cn('cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', task.completed && 'text-muted-foreground line-through')}
-                                    >
-                                    {task.title}
-                                    </label>
-                                    <p className="text-sm text-muted-foreground">
-                                    Entrega: {task.dueDate}
-                                    </p>
-                                </div>
-                            </div>
-                        </DialogTrigger>
-                    ))}
-                    </div>
-                </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        )}
+
       </div>
        {selectedTask && (
             <DialogContent className="sm:max-w-[425px]">
