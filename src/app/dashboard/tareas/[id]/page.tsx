@@ -8,16 +8,16 @@ import {
   ClipboardCheck,
   CheckCircle,
   Circle,
-  ChevronRight,
   MessageSquare,
   ArrowDownUp,
   Calendar,
+  LayoutGrid,
+  FilterX,
 } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -34,13 +34,14 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { projects, type Project, type Milestone, type ProjectTask, type Comment } from '@/lib/data';
+import { projects, type Project, type Milestone, type ProjectTask, type Comment, staff } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const getPriorityVariant = (priority: ProjectTask['priority']) => {
   switch (priority) {
@@ -54,7 +55,6 @@ const getPriorityVariant = (priority: ProjectTask['priority']) => {
       return 'outline';
   }
 };
-
 
 /**
  * Componente que representa un único hito (Milestone) en el plan del proyecto.
@@ -117,105 +117,11 @@ const MilestoneSummaryCard = React.memo(function MilestoneSummaryCard({
   );
 });
 
-/**
- * Componente para mostrar los detalles y tareas de un hito seleccionado.
- */
-const MilestoneDetailView = React.memo(function MilestoneDetailView({
-    milestone,
-    onTaskToggle,
-    onTaskSelect,
-    onBack,
-    onSort,
-    currentSort,
-}: {
-    milestone: Milestone;
-    onTaskToggle: (milestoneId: string, taskId: string) => void;
-    onTaskSelect: (task: ProjectTask) => void;
-    onBack: () => void;
-    onSort: (sortBy: 'dueDate' | 'priority') => void;
-    currentSort: 'dueDate' | 'priority';
-}) {
-    const completedTasks = milestone.tasks.filter(t => t.completed).length;
-    const totalTasks = milestone.tasks.length;
-    const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div>
-                        <div className="flex items-center gap-2">
-                             <Button variant="outline" size="icon" className="h-7 w-7" onClick={onBack}>
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                            <CardTitle>{milestone.title}</CardTitle>
-                        </div>
-                        <CardDescription className="mt-2 pl-9">{milestone.description}</CardDescription>
-                    </div>
-                     <Badge variant={progress === 100 ? 'secondary' : 'default'}>
-                        {milestone.days}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="mb-4">
-                    <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                        <span>Progreso</span>
-                        <span>{completedTasks} de {totalTasks} tareas</span>
-                    </div>
-                    <Progress value={progress} />
-                </div>
-                <div className="mb-4 flex items-center justify-end gap-2">
-                    <span className="text-sm text-muted-foreground">Ordenar por:</span>
-                     <Button variant={currentSort === 'dueDate' ? 'secondary' : 'outline'} size="sm" onClick={() => onSort('dueDate')}>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Fecha
-                    </Button>
-                    <Button variant={currentSort === 'priority' ? 'secondary' : 'outline'} size="sm" onClick={() => onSort('priority')}>
-                        <ArrowDownUp className="mr-2 h-4 w-4" />
-                        Prioridad
-                    </Button>
-                </div>
-                 <div className="space-y-3">
-                    {milestone.tasks.map((task) => (
-                        <DialogTrigger key={task.id} asChild>
-                        <div
-                            onClick={() => onTaskSelect(task)}
-                            className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-all hover:bg-muted/50"
-                        >
-                            <Checkbox
-                            id={`task-${task.id}`}
-                            checked={task.completed}
-                            onClick={(e) => e.stopPropagation()} // Evita que el click en el checkbox dispare el click del div
-                            onCheckedChange={() => {
-                                onTaskToggle(milestone.id, task.id);
-                            }}
-                            className="mt-1"
-                            />
-                            <div className="grid flex-1 gap-1.5 leading-none">
-                                <label
-                                    htmlFor={`task-${task.id}`}
-                                    className={cn(
-                                    'cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-                                    task.completed && 'text-muted-foreground line-through'
-                                    )}
-                                >
-                                    {task.title}
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                    Vence: {task.dueDate}
-                                </p>
-                            </div>
-                            <Badge variant={getPriorityVariant(task.priority)}>{task.priority}</Badge>
-                        </div>
-                        </DialogTrigger>
-                    ))}
-                    </div>
-            </CardContent>
-        </Card>
-    )
-})
-
+const getAssigneeAvatar = (assigneeName: string) => {
+    const user = staff.find(s => s.name === assigneeName);
+    return user ? user.avatarUrl : 'https://picsum.photos/seed/avatar-fallback/40/40';
+}
 
 /**
  * Componente de cliente que maneja la lógica y el estado de la página de detalle del proyecto.
@@ -223,9 +129,10 @@ const MilestoneDetailView = React.memo(function MilestoneDetailView({
 function ProjectDetailClient({ initialProject }: { initialProject: Project | undefined }) {
   const [project, setProject] = useState<Project | undefined>(initialProject);
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
-  const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [newComment, setNewComment] = useState('');
   const [sortBy, setSortBy] = useState<'dueDate' | 'priority'>('dueDate');
+  const [activeTab, setActiveTab] = useState('hitos');
+  const [filteredMilestoneId, setFilteredMilestoneId] = useState<string | null>(null);
 
   const handleTaskToggle = (milestoneId: string, taskId: string) => {
     setProject((currentProject) => {
@@ -242,15 +149,6 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
         }
         return milestone;
       });
-
-      if (selectedMilestone?.id === milestoneId) {
-        const updatedSelectedMilestone = updatedMilestones.find(
-          (m) => m.id === milestoneId
-        );
-        if (updatedSelectedMilestone) {
-          setSelectedMilestone(updatedSelectedMilestone);
-        }
-      }
       return { ...currentProject, milestones: updatedMilestones };
     });
   };
@@ -283,7 +181,6 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
             tasks: m.tasks.map(t => {
                 if (t.id === selectedTask.id) {
                     const updatedTask = { ...t, comments: [...(t.comments || []), comment] };
-                    // Actualizar el estado de la tarea seleccionada en el diálogo
                     setSelectedTask(updatedTask);
                     return updatedTask;
                 }
@@ -301,30 +198,33 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
     setSortBy(sort);
     setProject(currentProject => {
         if (!currentProject) return;
-
         const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
-
         const sortedMilestones = currentProject.milestones.map(milestone => {
             const sortedTasks = [...milestone.tasks].sort((a, b) => {
                 if (sort === 'priority') {
                     return priorityOrder[a.priority] - priorityOrder[b.priority];
                 }
-                // por defecto, ordenar por fecha
                 return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             });
             return { ...milestone, tasks: sortedTasks };
         });
-
-        // También se debe actualizar el hito seleccionado
-        if (selectedMilestone) {
-            const updatedSelectedMilestone = sortedMilestones.find(m => m.id === selectedMilestone.id);
-            if (updatedSelectedMilestone) setSelectedMilestone(updatedSelectedMilestone);
-        }
-
         return { ...currentProject, milestones: sortedMilestones };
     });
-  }, [selectedMilestone]);
+  }, []);
 
+  const handleMilestoneSelect = (milestoneId: string) => {
+    setActiveTab('tareas');
+    setFilteredMilestoneId(milestoneId);
+  }
+
+  const allTasks = useMemo(() => {
+    if (!project) return [];
+    let tasks = project.milestones.flatMap(m => m.tasks.map(t => ({ ...t, milestoneTitle: m.title, milestoneId: m.id })));
+    if(filteredMilestoneId) {
+        tasks = tasks.filter(t => t.milestoneId === filteredMilestoneId);
+    }
+    return tasks;
+  }, [project, filteredMilestoneId]);
 
   const overallProgress = useMemo(() => {
     if (!project) return 0;
@@ -402,27 +302,106 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
             </CardContent>
         </Card>
 
-        {selectedMilestone ? (
-            <MilestoneDetailView 
-                milestone={selectedMilestone}
-                onTaskToggle={handleTaskToggle}
-                onTaskSelect={handleSelectTask}
-                onBack={() => setSelectedMilestone(null)}
-                onSort={handleSort}
-                currentSort={sortBy}
-            />
-        ) : (
+         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="hitos" className="gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                Hitos
+            </TabsTrigger>
+            <TabsTrigger value="tareas" className="gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Todas las Tareas
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="hitos">
              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              {project.milestones.map((milestone) => (
-                <MilestoneSummaryCard
-                  key={milestone.id}
-                  milestone={milestone}
-                  onMilestoneSelect={() => setSelectedMilestone(milestone)}
-                />
-              ))}
-            </div>
-        )}
-
+                {project.milestones.map((milestone) => (
+                    <MilestoneSummaryCard
+                    key={milestone.id}
+                    milestone={milestone}
+                    onMilestoneSelect={() => handleMilestoneSelect(milestone.id)}
+                    />
+                ))}
+                </div>
+          </TabsContent>
+          <TabsContent value="tareas">
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Lista de Tareas</CardTitle>
+                                <CardDescription>
+                                    {filteredMilestoneId 
+                                        ? `Viendo tareas del hito: ${project.milestones.find(m => m.id === filteredMilestoneId)?.title}`
+                                        : 'Todas las tareas del proyecto.'
+                                    }
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {filteredMilestoneId && (
+                                    <Button variant="ghost" size="sm" onClick={() => setFilteredMilestoneId(null)}>
+                                        <FilterX className="mr-2 h-4 w-4"/>
+                                        Limpiar Filtro
+                                    </Button>
+                                )}
+                                <span className="text-sm text-muted-foreground">Ordenar por:</span>
+                                <Button variant={sortBy === 'dueDate' ? 'secondary' : 'outline'} size="sm" onClick={() => handleSort('dueDate')}>
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    Fecha
+                                </Button>
+                                <Button variant={sortBy === 'priority' ? 'secondary' : 'outline'} size="sm" onClick={() => handleSort('priority')}>
+                                    <ArrowDownUp className="mr-2 h-4 w-4" />
+                                    Prioridad
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="space-y-3">
+                            {allTasks.map((task) => (
+                                <DialogTrigger key={task.id} asChild>
+                                <div
+                                    onClick={() => handleSelectTask(task)}
+                                    className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-all hover:bg-muted/50"
+                                >
+                                    <Checkbox
+                                    id={`task-${task.id}`}
+                                    checked={task.completed}
+                                    onClick={(e) => e.stopPropagation()} // Evita que el click en el checkbox dispare el click del div
+                                    onCheckedChange={() => {
+                                        handleTaskToggle(task.milestoneId, task.id);
+                                    }}
+                                    className="mt-1"
+                                    />
+                                    <div className="grid flex-1 gap-1.5 leading-none">
+                                        <label
+                                            htmlFor={`task-${task.id}`}
+                                            className={cn(
+                                            'cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+                                            task.completed && 'text-muted-foreground line-through'
+                                            )}
+                                        >
+                                            {task.title}
+                                        </label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Vence: {task.dueDate}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={getPriorityVariant(task.priority)}>{task.priority}</Badge>
+                                        <Avatar className="h-6 w-6">
+                                            <AvatarImage src={getAssigneeAvatar(task.assignedTo)} />
+                                            <AvatarFallback>{task.assignedTo.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                    </div>
+                                </div>
+                                </DialogTrigger>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+          </TabsContent>
+        </Tabs>
       </div>
        {selectedTask && (
             <DialogContent className="sm:max-w-lg">
@@ -488,6 +467,5 @@ function ProjectDetailClient({ initialProject }: { initialProject: Project | und
  */
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const project = projects.find((p) => p.id === params.id);
-
   return <ProjectDetailClient initialProject={project} />;
 }
