@@ -22,9 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MilestoneSummaryCard } from '@/components/milestone-summary-card';
 
 
-function ProjectDetailClient({ initialProject }: { initialProject: Project }) {
-  const [project] = useState<Project>(initialProject);
-
+function ProjectDetailClient({ project }: { project: Project }) {
   const overallProgress = useMemo(() => {
     const totalTasks = project.milestones.reduce(
       (acc, m) => acc + m.tasks.length,
@@ -115,5 +113,5 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     );
   }
 
-  return <ProjectDetailClient initialProject={project} />;
+  return <ProjectDetailClient project={project} />;
 }
