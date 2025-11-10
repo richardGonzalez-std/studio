@@ -24,7 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 // $$$ CONECTOR MYSQL: Se importan datos de ejemplo. En una aplicación real, todos estos datos vendrían de la base de datos.
-import { credits, tasks, staff, Task } from '@/lib/data'; 
+import { credits, tasks, staff, Task, type Credit } from '@/lib/data'; 
 import { CaseChat } from '@/components/case-chat';
 import {
   Tooltip,
@@ -126,19 +126,8 @@ function JudicialCaseTasks({ caseId }: { caseId: string }) {
   );
 }
 
-/**
- * Página de detalle de un caso de Cobro Judicial.
- * @param {{ params: { id: string } }} props - Propiedades pasadas por Next.js, incluyendo el ID del caso desde la URL.
- */
-export default function JudicialCaseDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+function JudicialCaseDetailClient({ judicialCase }: { judicialCase: Credit | undefined }) {
   const [isPanelVisible, setIsPanelVisible] = useState(true);
-  
-  // $$$ CONECTOR MYSQL: Busca el caso. Esto será una consulta a la base de datos.
-  const judicialCase = credits.find((c) => c.operationNumber === params.id && c.status === 'En cobro judicial');
 
   if (!judicialCase) {
     return (
@@ -337,4 +326,18 @@ export default function JudicialCaseDetailPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Página de detalle de un caso de Cobro Judicial.
+ * @param {{ params: { id: string } }} props - Propiedades pasadas por Next.js, incluyendo el ID del caso desde la URL.
+ */
+export default function JudicialCaseDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  // $$$ CONECTOR MYSQL: Busca el caso. Esto será una consulta a la base de datos.
+  const judicialCase = credits.find((c) => c.operationNumber === params.id && c.status === 'En cobro judicial');
+  return <JudicialCaseDetailClient judicialCase={judicialCase} />;
 }

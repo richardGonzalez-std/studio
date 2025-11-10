@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { investments } from '@/lib/data';
+import { investments, type Investment } from '@/lib/data';
 import {
   Select,
   SelectContent,
@@ -21,8 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-function InvestmentDetailClient({ id }: { id: string }) {
-  const investment = investments.find((i) => i.investmentNumber === id);
+function InvestmentDetailClient({ investment }: { investment: Investment | undefined }) {
 
   if (!investment) {
     return (
@@ -149,5 +148,6 @@ function InvestmentDetailClient({ id }: { id: string }) {
 }
 
 export default function InvestmentDetailPage({ params }: { params: { id: string } }) {
-  return <InvestmentDetailClient id={params.id} />
+  const investment = investments.find((i) => i.investmentNumber === params.id);
+  return <InvestmentDetailClient investment={investment} />
 }

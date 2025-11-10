@@ -120,14 +120,9 @@ function CaseTasks({ caseId }: { caseId: string }) {
     )
 }
 
-function EjecucionDetailClient({ id }: { id: string }) {
+function EjecucionDetailClient({ caseItem }: { caseItem: (typeof cases)[0] | undefined }) {
   // Estado para controlar la visibilidad del panel lateral de chat y tareas.
   const [isChatVisible, setIsChatVisible] = useState(true);
-  
-  // Buscamos la ejecución específica en nuestros datos usando el 'id' de la URL.
-  const caseItem = cases.find(
-    (c) => c.id.toLowerCase() === id.toLowerCase()
-  );
 
   // Si no se encuentra la ejecución, mostramos un mensaje y un botón para volver.
   if (!caseItem) {
@@ -331,5 +326,8 @@ export default function EjecucionDetailPage({
 }: {
   params: { id: string };
 }) {
-  return <EjecucionDetailClient id={params.id} />;
+  const caseItem = cases.find(
+    (c) => c.id.toLowerCase() === params.id.toLowerCase()
+  );
+  return <EjecucionDetailClient caseItem={caseItem} />;
 }

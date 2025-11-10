@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 // $$$ CONECTOR MYSQL: Se importan datos de ejemplo. En una aplicación real, todos estos datos vendrían de la base de datos.
-import { credits, tasks, staff, Task } from '@/lib/data'; 
+import { credits, tasks, staff, Task, type Credit } from '@/lib/data'; 
 import { CaseChat } from '@/components/case-chat';
 import {
   Tooltip,
@@ -131,13 +131,11 @@ function CreditTasks({ creditId }: { creditId: string }) {
   );
 }
 
-function CreditDetailClient({ id }: { id: string }) {
+function CreditDetailClient({ credit }: { credit: Credit | undefined }) {
   // Estado para controlar la visibilidad del panel lateral.
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   // Estado para almacenar el tipo de documento seleccionado en el generador.
   const [selectedDocument, setSelectedDocument] = useState('pagare');
-  // $$$ CONECTOR MYSQL: Busca el crédito. Esto será una consulta a la base de datos (SELECT * FROM creditos WHERE id_operacion = ...).
-  const credit = credits.find((c) => c.operationNumber === id);
 
   // Si no se encuentra el crédito, muestra un mensaje de error.
   if (!credit) {
@@ -395,5 +393,6 @@ export default function CreditDetailPage({
 }: {
   params: { id: string };
 }) {
-  return <CreditDetailClient id={params.id} />
+  const credit = credits.find((c) => c.operationNumber === params.id);
+  return <CreditDetailClient credit={credit} />
 }

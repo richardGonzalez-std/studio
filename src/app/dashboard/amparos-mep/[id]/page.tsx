@@ -120,13 +120,9 @@ function CaseTasks({ caseId }: { caseId: string }) {
     )
 }
 
-function AmparoMepDetailClient({ id }: { id: string }) {
+function AmparoMepDetailClient({ caseItem }: { caseItem: (typeof cases)[0] | undefined }) {
   // Estado para controlar la visibilidad del panel lateral de chat y tareas.
   const [isChatVisible, setIsChatVisible] = useState(true);
-  
-  // Buscamos el caso específico en nuestros datos usando el 'id' de la URL.
-  // Convertimos el id a mayúsculas para asegurar la coincidencia.
-  const caseItem = cases.find((c) => c.id === id.toUpperCase());
 
   // Si no se encuentra el caso, mostramos un mensaje y un botón para volver.
   if (!caseItem) {
@@ -337,5 +333,8 @@ export default function AmparoMepDetailPage({
 }: {
   params: { id: string };
 }) {
-  return <AmparoMepDetailClient id={params.id} />;
+  // Buscamos el caso específico en nuestros datos usando el 'id' de la URL.
+  // Convertimos el id a mayúsculas para asegurar la coincidencia.
+  const caseItem = cases.find((c) => c.id === params.id.toUpperCase());
+  return <AmparoMepDetailClient caseItem={caseItem} />;
 }

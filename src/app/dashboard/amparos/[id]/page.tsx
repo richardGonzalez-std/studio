@@ -121,13 +121,9 @@ function CaseTasks({ caseId }: { caseId: string }) {
     )
 }
 
-function CaseDetailClient({ id }: { id: string }) {
+function CaseDetailClient({ caseItem }: { caseItem: (typeof cases)[0] | undefined }) {
   // Estado para controlar la visibilidad del panel lateral de chat y tareas.
   const [isChatVisible, setIsChatVisible] = useState(true);
-  
-  // Buscamos el caso específico en nuestros datos usando el 'id' de la URL.
-  // Convertimos el id a mayúsculas para asegurar la coincidencia.
-  const caseItem = cases.find((c) => c.id === id.toUpperCase());
 
   // Si no se encuentra el caso, mostramos un mensaje y un botón para volver.
   if (!caseItem) {
@@ -333,5 +329,8 @@ function CaseDetailClient({ id }: { id: string }) {
  * @param {{ params: { id: string } }} props - Las propiedades que Next.js pasa a la página, incluyendo el 'id' del amparo desde la URL.
  */
 export default function CaseDetailPage({ params }: { params: { id: string } }) {
-  return <CaseDetailClient id={params.id} />
+  // Buscamos el caso específico en nuestros datos usando el 'id' de la URL.
+  // Convertimos el id a mayúsculas para asegurar la coincidencia.
+  const caseItem = cases.find((c) => c.id === params.id.toUpperCase());
+  return <CaseDetailClient caseItem={caseItem} />
 }
