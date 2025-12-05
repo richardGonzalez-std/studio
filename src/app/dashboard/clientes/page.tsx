@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { MoreHorizontal, PlusCircle, Loader2, AlertCircle, Filter, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, AlertCircle, Filter, Search, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Importamos la conexión real y los tipos
 import api from '@/lib/axios';
@@ -21,12 +26,30 @@ type LeadStatus = {
     name: string;
 };
 
+const normalizeCedulaInput = (value: string): string => value.replace(/[^0-9]/g, "");
+
+const createEmptyLeadForm = () => ({
+  name: "",
+  apellido1: "",
+  apellido2: "",
+  email: "",
+  phone: "",
+  cedula: "",
+  fechaNacimiento: "",
+});
+
 export default function ClientesPage() {
+  const { toast } = useToast();
   const [clientsData, setClientsData] = useState<Client[]>([]);
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Dialog State
+  const [isLeadDialogOpen, setIsLeadDialogOpen] = useState(false);
+  const [isSavingLead, setIsSavingLead] = useState(false);
+  const [leadFormValues, setLeadFormValues] = useState(createEmptyLeadForm());
+
   // Filters
   const [activeTab, setActiveTab] = useState("leads");
   const [activeFilter, setActiveFilter] = useState<string>("all"); // Active/Inactive
@@ -57,52 +80,53 @@ export default function ClientesPage() {
     fetchLists();
   }, []);
 
+  // Define fetchData outside useEffect so it can be reused
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const commonParams: any = {};
+      if (activeFilter !== "all") commonParams.is_active = activeFilter === "active" ? 1 : 0;
+      if (searchQuery) commonParams.q = searchQuery;
+      if (agentFilter !== "all") commonParams.assigned_to_id = agentFilter;
+      if (dateFrom) commonParams.date_from = dateFrom;
+      if (dateTo) commonParams.date_to = dateTo;
+
+      // Prepare specific params
+      const leadParams = { ...commonParams };
+      const clientParams = { ...commonParams };
+
+      if (statusFilter !== "all") {
+          if (activeTab === "leads") {
+              leadParams.lead_status_id = statusFilter;
+          } else {
+              clientParams.status = statusFilter;
+          }
+      }
+
+      // Hacemos las peticiones paralelas
+      const [resClients, resLeads] = await Promise.all([
+        api.get('/api/clients', { params: clientParams }),
+        api.get('/api/leads', { params: leadParams })
+      ]);
+
+      // Manejo robusto de la respuesta (por si viene paginada o no)
+      const clientsArray = resClients.data.data || resClients.data;
+      const leadsArray = resLeads.data.data || resLeads.data;
+
+      setClientsData(Array.isArray(clientsArray) ? clientsArray : []);
+      setLeadsData(Array.isArray(leadsArray) ? leadsArray : []);
+
+    } catch (err) {
+      console.error("Error cargando datos:", err);
+      setError("Error de conexión. Verifica que el backend esté corriendo.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch Data when filters change
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const commonParams: any = {};
-        if (activeFilter !== "all") commonParams.is_active = activeFilter === "active" ? 1 : 0;
-        if (searchQuery) commonParams.q = searchQuery;
-        if (agentFilter !== "all") commonParams.assigned_to_id = agentFilter;
-        if (dateFrom) commonParams.date_from = dateFrom;
-        if (dateTo) commonParams.date_to = dateTo;
-
-        // Prepare specific params
-        const leadParams = { ...commonParams };
-        const clientParams = { ...commonParams };
-
-        if (statusFilter !== "all") {
-            if (activeTab === "leads") {
-                leadParams.lead_status_id = statusFilter;
-            } else {
-                clientParams.status = statusFilter;
-            }
-        }
-
-        // Hacemos las peticiones paralelas
-        const [resClients, resLeads] = await Promise.all([
-          api.get('/api/clients', { params: clientParams }),
-          api.get('/api/leads', { params: leadParams })
-        ]);
-
-        // Manejo robusto de la respuesta (por si viene paginada o no)
-        const clientsArray = resClients.data.data || resClients.data;
-        const leadsArray = resLeads.data.data || resLeads.data;
-
-        setClientsData(Array.isArray(clientsArray) ? clientsArray : []);
-        setLeadsData(Array.isArray(leadsArray) ? leadsArray : []);
-
-      } catch (err) {
-        console.error("Error cargando datos:", err);
-        setError("Error de conexión. Verifica que el backend esté corriendo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     // Debounce search
     const timeoutId = setTimeout(() => {
         fetchData();
@@ -117,6 +141,118 @@ export default function ClientesPage() {
       setStatusFilter("all");
   };
 
+  const handleExportPDF = () => {
+    const isLeads = activeTab === "leads";
+    const dataToExport = isLeads ? leadsData : clientsData;
+    const title = isLeads ? "Reporte de Leads" : "Reporte de Clientes";
+
+    if (dataToExport.length === 0) {
+        alert("No hay datos para exportar");
+        return;
+    }
+
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+    doc.text(title, 14, 16);
+
+    const tableColumn = ["Nombre", "Cédula", "Email", "Teléfono", "Estado"];
+
+    const tableRows = dataToExport.map((item: any) => [
+        item.name,
+        item.cedula || "-",
+        item.email,
+        item.phone || "-",
+        isLeads ? (item.lead_status?.name || item.lead_status_id) : (item.status || (item.is_active ? 'Activo' : 'Inactivo'))
+    ]);
+
+    autoTable(doc, {
+        startY: 22,
+        head: [tableColumn],
+        body: tableRows,
+    });
+
+    doc.save(`${isLeads ? 'leads' : 'clientes'}_${Date.now()}.pdf`);
+  };
+
+  const handleClearFilters = () => {
+      setSearchQuery("");
+      setActiveFilter("all");
+      setAgentFilter("all");
+      setStatusFilter("all");
+      setDateFrom("");
+      setDateTo("");
+  };
+
+  // --- Add Lead Logic ---
+  const openLeadDialog = () => {
+    setLeadFormValues(createEmptyLeadForm());
+    setIsLeadDialogOpen(true);
+  };
+
+  const closeLeadDialog = () => {
+    setIsLeadDialogOpen(false);
+    setLeadFormValues(createEmptyLeadForm());
+  };
+
+  const handleLeadFieldChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setLeadFormValues((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleLeadSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = leadFormValues.name.trim();
+    const trimmedEmail = leadFormValues.email.trim();
+
+    if (!trimmedName || !trimmedEmail) {
+      toast({
+        title: "Faltan datos",
+        description: "Ingresa al menos el nombre y el correo del lead.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingLead(true);
+
+      const body = {
+        name: trimmedName,
+        email: trimmedEmail,
+        cedula: normalizeCedulaInput(leadFormValues.cedula) || null,
+        phone: leadFormValues.phone.trim() || null,
+        apellido1: leadFormValues.apellido1.trim() || null,
+        apellido2: leadFormValues.apellido2.trim() || null,
+        status: "Nuevo",
+        // Note: Backend expects 'fecha_nacimiento' if using the same controller logic as dsf3, 
+        // but standard Laravel convention might be snake_case. 
+        // Let's assume the backend handles it or we map it.
+        // In dsf3 it was sending 'fecha_nacimiento'.
+        fecha_nacimiento: leadFormValues.fechaNacimiento || null,
+      };
+
+      await api.post('/api/leads', body);
+
+      toast({ title: "Lead creado", description: `${trimmedName} ya aparece en el panel.` });
+      closeLeadDialog();
+      fetchData(); // Reload list
+    } catch (error: any) {
+      console.error("Error creando lead:", error);
+      const message = error.response?.data?.message || "No pudimos registrar el lead.";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingLead(false);
+    }
+  };
+
   if (error) return <div className="p-8 text-center text-destructive">{error}</div>;
 
   return (
@@ -128,7 +264,7 @@ export default function ClientesPage() {
             <TabsTrigger value="clientes">Clientes</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="gap-1" onClick={openLeadDialog}>
                     <PlusCircle className="h-4 w-4" />
                     Agregar
                 </Button>
@@ -214,6 +350,14 @@ export default function ClientesPage() {
                     </SelectContent>
                 </Select>
             )}
+
+            <Button variant="outline" onClick={handleClearFilters}>
+                Limpiar filtros
+            </Button>
+            <Button variant="secondary" onClick={handleExportPDF} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar PDF
+            </Button>
         </div>
       </div>
 
@@ -240,6 +384,84 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
       </TabsContent>
+
+      <Dialog open={isLeadDialogOpen} onOpenChange={setIsLeadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar nuevo lead</DialogTitle>
+            <DialogDescription>Captura los datos del contacto para comenzar el seguimiento.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleLeadSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="lead-cedula">Cédula</Label>
+              <Input
+                id="lead-cedula"
+                value={leadFormValues.cedula}
+                onChange={handleLeadFieldChange("cedula")}
+                placeholder="0-0000-0000"
+              />
+              <p className="text-xs text-muted-foreground">Al ingresar la cédula completaremos los datos desde el TSE.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="lead-name">Nombre</Label>
+                <Input id="lead-name" value={leadFormValues.name} onChange={handleLeadFieldChange("name")} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lead-apellido1">Primer apellido</Label>
+                <Input
+                  id="lead-apellido1"
+                  value={leadFormValues.apellido1}
+                  onChange={handleLeadFieldChange("apellido1")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lead-apellido2">Segundo apellido</Label>
+                <Input
+                  id="lead-apellido2"
+                  value={leadFormValues.apellido2}
+                  onChange={handleLeadFieldChange("apellido2")}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="lead-email">Correo</Label>
+                <Input
+                  id="lead-email"
+                  type="email"
+                  value={leadFormValues.email}
+                  onChange={handleLeadFieldChange("email")}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lead-phone">Teléfono</Label>
+                <Input id="lead-phone" value={leadFormValues.phone} onChange={handleLeadFieldChange("phone")} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="lead-birthdate">Fecha de nacimiento</Label>
+                <Input
+                  id="lead-birthdate"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD-MM-AAAA"
+                  value={leadFormValues.fechaNacimiento}
+                  onChange={handleLeadFieldChange("fechaNacimiento")}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeLeadDialog} disabled={isSavingLead}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSavingLead}>
+                {isSavingLead ? "Guardando..." : "Crear lead"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }
