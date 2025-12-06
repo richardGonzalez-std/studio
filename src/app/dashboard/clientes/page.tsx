@@ -43,6 +43,7 @@ export default function ClientesPage() {
   const { toast } = useToast();
   const [clientsData, setClientsData] = useState<Client[]>([]);
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
+  const [inactiveData, setInactiveData] = useState<(Lead | Client)[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -96,18 +97,21 @@ export default function ClientesPage() {
       const leadParams = { ...commonParams };
       const clientParams = { ...commonParams };
 
+      if (activeTab === 'inactivos') {
+          // Fetch inactive items
+          leadParams.is_active = 0;
+          clientParams.is_active = 0;
+      } else {
+          // Fetch active items by default
+          leadParams.is_active = 1;
+          clientParams.is_active = 1;
+      }
+
       if (statusFilter !== "all") {
           if (activeTab === "leads") {
               leadParams.lead_status_id = statusFilter;
-          } else {
-              // Logic for Clients: Map "Activo"/"Inactivo" to is_active, others to status
-              if (statusFilter === "Activo") {
-                  clientParams.is_active = 1;
-              } else if (statusFilter === "Inactivo") {
-                  clientParams.is_active = 0;
-              } else {
-                  clientParams.status = statusFilter;
-              }
+          } else if (activeTab === "clientes") {
+              clientParams.status = statusFilter;
           }
       }
 
@@ -121,8 +125,15 @@ export default function ClientesPage() {
       const clientsArray = resClients.data.data || resClients.data;
       const leadsArray = resLeads.data.data || resLeads.data;
 
-      setClientsData(Array.isArray(clientsArray) ? clientsArray : []);
-      setLeadsData(Array.isArray(leadsArray) ? leadsArray : []);
+      if (activeTab === 'inactivos') {
+          const combined = [...(Array.isArray(clientsArray) ? clientsArray : []), ...(Array.isArray(leadsArray) ? leadsArray : [])];
+          // Sort by updated_at desc
+          combined.sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+          setInactiveData(combined);
+      } else {
+          setClientsData(Array.isArray(clientsArray) ? clientsArray : []);
+          setLeadsData(Array.isArray(leadsArray) ? leadsArray : []);
+      }
 
     } catch (err) {
       console.error("Error cargando datos:", err);
@@ -443,9 +454,9 @@ export default function ClientesPage() {
                             <SelectValue placeholder="Todos los estados" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todos los estados</SelectItem>
+                            <SelectItem value="all" className="focus:bg-gray-200/50 cursor-pointer">Todos los estados</SelectItem>
                             {leadStatuses.map(status => (
-                              <SelectItem key={status.id} value={String(status.id)}>{status.name}</SelectItem>
+                              <SelectItem key={status.id} value={String(status.id)} className="focus:bg-gray-200/50 cursor-pointer">{status.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -455,12 +466,10 @@ export default function ClientesPage() {
                             <SelectValue placeholder="Todos los estados" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todos los estados</SelectItem>
-                            <SelectItem value="Activo">Activo</SelectItem>
-                            <SelectItem value="Inactivo">Inactivo</SelectItem>
-                            <SelectItem value="Cliente Premium">Cliente Premium</SelectItem>
-                            <SelectItem value="Prospecto">Prospecto</SelectItem>
-                            <SelectItem value="Descartado">Descartado</SelectItem>
+                            <SelectItem value="all" className="focus:bg-gray-200/50 cursor-pointer">Todos los estados</SelectItem>
+                            <SelectItem value="Cliente Premium" className="focus:bg-gray-200/50 cursor-pointer">Cliente Premium</SelectItem>
+                            <SelectItem value="Prospecto" className="focus:bg-gray-200/50 cursor-pointer">Prospecto</SelectItem>
+                            <SelectItem value="Descartado" className="focus:bg-gray-200/50 cursor-pointer">Descartado</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -472,9 +481,9 @@ export default function ClientesPage() {
                           <SelectValue placeholder="Todos los agentes" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Todos los agentes</SelectItem>
+                          <SelectItem value="all" className="focus:bg-gray-200/50 cursor-pointer">Todos los agentes</SelectItem>
                           {agents.map(agent => (
-                            <SelectItem key={agent.id} value={String(agent.id)}>{agent.name}</SelectItem>
+                            <SelectItem key={agent.id} value={String(agent.id)} className="focus:bg-gray-200/50 cursor-pointer">{agent.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -483,9 +492,10 @@ export default function ClientesPage() {
                 </CollapsibleContent>
 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-                  <TabsList className="grid grid-cols-2 w-[400px]">
+                  <TabsList className="grid grid-cols-3 w-full">
                     <TabsTrigger value="leads" className="hover:bg-gray-200/50">Leads</TabsTrigger>
                     <TabsTrigger value="clientes" className="hover:bg-gray-200/50">Clientes</TabsTrigger>
+                    <TabsTrigger value="inactivos" className="hover:bg-gray-200/50">Inactivos</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="leads" className="space-y-4">
@@ -494,6 +504,10 @@ export default function ClientesPage() {
 
                   <TabsContent value="clientes" className="space-y-4">
                     {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : <ClientsTable data={clientsData} />}
+                  </TabsContent>
+
+                  <TabsContent value="inactivos" className="space-y-4">
+                    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : <InactiveTable data={inactiveData} />}
                   </TabsContent>
                 </Tabs>
               </div>
@@ -666,7 +680,7 @@ function ClientsTable({ data }: { data: Client[] }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <DropdownMenuItem className="hover:bg-gray-200/50">Ver Perfil</DropdownMenuItem>
+                      <DropdownMenuItem className="focus:bg-gray-200/50 cursor-pointer">Ver Perfil</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -761,6 +775,48 @@ function LeadsTable({ data, onAction }: { data: Lead[], onAction: (action: strin
                           <Archive className="h-4 w-4" />
                       </Button>
                   </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    );
+}
+
+function InactiveTable({ data }: { data: (Lead | Client)[] }) {
+    if (data.length === 0) return <div className="text-center p-4 text-muted-foreground">No hay registros inactivos.</div>;
+
+    return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Contacto</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Última actualización</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={`https://ui-avatars.com/api/?name=${item.name}&background=random`} />
+                        <AvatarFallback>{item.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">{item.email || item.phone || "Sin contacto"}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                    <Badge variant="secondary">
+                        {(item as any).lead_status?.name || (item as any).status || 'Inactivo'}
+                    </Badge>
+                </TableCell>
+                <TableCell>
+                    {new Date(((item as any).updated_at || (item as any).created_at)).toLocaleDateString()}
                 </TableCell>
               </TableRow>
             ))}
