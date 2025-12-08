@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
 // Importamos la conexión real y los tipos
@@ -146,6 +147,7 @@ export default function ClientesPage() {
   const [leadFormValues, setLeadFormValues] = useState(createEmptyLeadForm());
   const [editingId, setEditingId] = useState<string | Number | null>(null);
   const [editingType, setEditingType] = useState<'lead' | 'client' | null>(null);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   
   // TSE Lookup State
   const [isFetchingTse, setIsFetchingTse] = useState(false);
@@ -363,6 +365,7 @@ export default function ClientesPage() {
     setEditingId(null);
     setEditingType(null);
     setLastTseCedula(null);
+    setIsViewOnly(false);
     setIsLeadDialogOpen(true);
   };
 
@@ -372,6 +375,7 @@ export default function ClientesPage() {
     setEditingId(null);
     setEditingType(null);
     setLastTseCedula(null);
+    setIsViewOnly(false);
   };
 
   const handleLeadFieldChange = (field: string) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -503,6 +507,7 @@ export default function ClientesPage() {
               });
               setEditingId(lead.id);
               setEditingType('lead');
+              setIsViewOnly(false);
               setIsLeadDialogOpen(true);
               break;
           case 'view':
@@ -517,6 +522,7 @@ export default function ClientesPage() {
               });
               setEditingId(lead.id); // Just to fill form
               setEditingType('lead');
+              setIsViewOnly(true);
               setIsLeadDialogOpen(true);
               break;
           case 'convert':
@@ -573,6 +579,7 @@ export default function ClientesPage() {
       });
       setEditingId(client.id);
       setEditingType('client');
+      setIsViewOnly(false);
       setIsLeadDialogOpen(true);
   };
 
@@ -628,7 +635,7 @@ export default function ClientesPage() {
   if (error) return <div className="p-8 text-center text-destructive">{error}</div>;
 
   return (
-    <>
+    <TooltipProvider>
       <div className="space-y-6">
         <Card>
           <Collapsible open={isLeadFiltersOpen} onOpenChange={setIsLeadFiltersOpen} className="space-y-0">
@@ -820,8 +827,16 @@ export default function ClientesPage() {
       <Dialog open={isLeadDialogOpen} onOpenChange={(open) => !open && closeLeadDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? (editingType === 'client' ? 'Editar Cliente' : 'Editar Lead') : 'Registrar nuevo lead'}</DialogTitle>
-            <DialogDescription>{editingId ? 'Modifica los datos del contacto.' : 'Captura los datos del contacto para comenzar el seguimiento.'}</DialogDescription>
+            <DialogTitle>
+              {isViewOnly 
+                ? 'Detalles del contacto' 
+                : (editingId ? (editingType === 'client' ? 'Editar Cliente' : 'Editar Lead') : 'Registrar nuevo lead')}
+            </DialogTitle>
+            <DialogDescription>
+              {isViewOnly 
+                ? 'Información registrada del contacto.' 
+                : (editingId ? 'Modifica los datos del contacto.' : 'Captura los datos del contacto para comenzar el seguimiento.')}
+            </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleLeadSubmit}>
             <div className="space-y-2">
@@ -831,13 +846,14 @@ export default function ClientesPage() {
                 value={leadFormValues.cedula}
                 onChange={handleLeadFieldChange("cedula")}
                 placeholder="0-0000-0000"
+                disabled={isViewOnly}
               />
-              <p className="text-xs text-muted-foreground">Al ingresar la cédula completaremos los datos desde el TSE.</p>
+              {!isViewOnly && <p className="text-xs text-muted-foreground">Al ingresar la cédula completaremos los datos desde el TSE.</p>}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="lead-name">Nombre</Label>
-                <Input id="lead-name" value={leadFormValues.name} onChange={handleLeadFieldChange("name")} required />
+                <Input id="lead-name" value={leadFormValues.name} onChange={handleLeadFieldChange("name")} required disabled={isViewOnly} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lead-apellido1">Primer apellido</Label>
@@ -845,6 +861,7 @@ export default function ClientesPage() {
                   id="lead-apellido1"
                   value={leadFormValues.apellido1}
                   onChange={handleLeadFieldChange("apellido1")}
+                  disabled={isViewOnly}
                 />
               </div>
               <div className="space-y-2">
@@ -853,6 +870,7 @@ export default function ClientesPage() {
                   id="lead-apellido2"
                   value={leadFormValues.apellido2}
                   onChange={handleLeadFieldChange("apellido2")}
+                  disabled={isViewOnly}
                 />
               </div>
             </div>
@@ -865,11 +883,12 @@ export default function ClientesPage() {
                   value={leadFormValues.email}
                   onChange={handleLeadFieldChange("email")}
                   required
+                  disabled={isViewOnly}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lead-phone">Teléfono</Label>
-                <Input id="lead-phone" value={leadFormValues.phone} onChange={handleLeadFieldChange("phone")} />
+                <Input id="lead-phone" value={leadFormValues.phone} onChange={handleLeadFieldChange("phone")} disabled={isViewOnly} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="lead-birthdate">Fecha de nacimiento</Label>
@@ -880,16 +899,19 @@ export default function ClientesPage() {
                   placeholder="DD-MM-AAAA"
                   value={leadFormValues.fechaNacimiento}
                   onChange={handleLeadFieldChange("fechaNacimiento")}
+                  disabled={isViewOnly}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeLeadDialog} disabled={isSavingLead}>
-                Cancelar
+                {isViewOnly ? "Cerrar" : "Cancelar"}
               </Button>
-              <Button type="submit" disabled={isSavingLead}>
-                {isSavingLead ? "Guardando..." : "Crear lead"}
-              </Button>
+              {!isViewOnly && (
+                <Button type="submit" disabled={isSavingLead}>
+                  {isSavingLead ? "Guardando..." : "Crear lead"}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </DialogContent>
@@ -974,7 +996,7 @@ export default function ClientesPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }
 
@@ -1025,21 +1047,46 @@ function LeadsTable({ data, onAction }: { data: Lead[], onAction: (action: strin
                     <TableCell className="text-right">{formatRegistered(lead.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Button size="icon" className="bg-sky-100 text-sky-700 hover:bg-sky-200" onClick={() => onAction('edit', lead)}>
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" className="bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => onAction('view', lead)}>
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" onClick={() => onAction('create_opportunity', lead)}>
-                            <Sparkles className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-500" onClick={() => onAction('convert', lead)}>
-                            <UserCheck className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="destructive" onClick={() => onAction('archive', lead)}>
-                            <Archive className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" className="bg-sky-100 text-sky-700 hover:bg-sky-200" onClick={() => onAction('edit', lead)}>
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" className="bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => onAction('view', lead)}>
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ver detalle</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" onClick={() => onAction('create_opportunity', lead)}>
+                                <Sparkles className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Crear oportunidad</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-500" onClick={() => onAction('convert', lead)}>
+                                <UserCheck className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Convertir a cliente</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="destructive" onClick={() => onAction('archive', lead)}>
+                                <Archive className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Archivar</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1092,9 +1139,14 @@ function ClientsTable({ data, onEdit, onDelete }: { data: Client[], onEdit: (cli
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Más acciones</TooltipContent>
+                        </Tooltip>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => onEdit(client)}>Editar</DropdownMenuItem>

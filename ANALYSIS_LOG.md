@@ -405,3 +405,37 @@ Se extendió el análisis de "pruebas imaginarias" a los controladores y modelos
   - `backend/app/Http/Controllers/Api/CreditController.php`
   - `backend/routes/api.php`
   - `src/app/dashboard/creditos/page.tsx`
+
+## Mejoras en UI y Lógica de Negocio (Créditos y Oportunidades)
+
+- Fecha: 2025-12-06 17:30
+- Rol: `Desarrollador Fullstack`
+- Autor: `GitHub Copilot`
+- Resumen: Se realizaron múltiples iteraciones para refinar la interfaz de usuario del módulo de Créditos, alinearla con el diseño de referencia (`dsf3`) y ajustar la lógica de negocio para la generación de IDs de oportunidades.
+- Acciones tomadas:
+  - **Frontend (Créditos)**:
+    - **Filtros por Estado**: Implementado sistema de pestañas ("gray menu") para filtrar créditos por estados específicos (Para redactar, Presentados, etc.), replicando la UX de `dsf3`.
+    - **Acciones Rápidas**: Se movieron las acciones "Ver detalle" y "Actualizar estado" fuera del menú desplegable a botones independientes con iconos (`Eye`, `Pencil`) y bordes de color (Rojo/Azul) para mejor accesibilidad.
+    - **Tabla de Datos**: Añadida columna "Oportunidad" mostrando el ID de la oportunidad asociada.
+    - **Formulario de Creación/Edición**:
+      - Rediseñado para coincidir con el formulario de "Crear Caso" de `dsf3`.
+      - Añadida tarjeta de información del Lead seleccionado.
+      - Añadido campo de "Progreso (%)".
+      - Lógica de filtrado inteligente para el selector de Oportunidades.
+      - Corrección de valores por defecto en selectores de estado.
+    - **Estilos Globales**: Ajustado el color de acento (`--accent`) a un gris claro para mejorar la estética de los elementos interactivos.
+  - **Backend (Oportunidades y Créditos)**:
+    - **IDs Personalizados**: Modificado el modelo `Opportunity` para generar IDs personalizados tipo string (ej: `25-00004-OP`) mediante eventos de modelo (`creating`).
+    - **Corrección de Seeders**:
+      - Habilitados eventos de modelo en `DatabaseSeeder` (removido `WithoutModelEvents`) para permitir la generación automática de IDs.
+      - Actualizado `CreditSeeder` para ser compatible con los nuevos IDs de tipo string y corregir referencias a campos inexistentes.
+    - **Migraciones**: Ajustadas las tablas `opportunities` y `credits` para soportar IDs de tipo string en las relaciones foráneas.
+
+- Archivos modificados:
+  - `src/app/dashboard/creditos/page.tsx`
+  - `src/app/globals.css`
+  - `backend/app/Models/Opportunity.php`
+  - `backend/database/migrations/2025_12_04_214837_create_opportunities_table.php`
+  - `backend/database/migrations/2025_12_06_203209_create_credits_table.php`
+  - `backend/database/seeders/DatabaseSeeder.php`
+  - `backend/database/seeders/CreditSeeder.php`
