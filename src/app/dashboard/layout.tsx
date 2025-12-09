@@ -59,6 +59,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* 'SidebarInset' es el área principal de contenido que se ajusta al lado de la barra lateral. */}
       <SidebarInset>
         {/* Muestra el encabezado del dashboard. */}
+        <AuthGuard>
           <DashboardHeader />
           {/* 'main' es donde se renderizará el contenido de cada página ('children').
               Envolvemos children en Suspense para permitir que componentes cliente
@@ -67,8 +68,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-1 flex-col p-4 lg:p-6 w-full min-w-0 overflow-x-hidden">
             <React.Suspense fallback={<div />}>{children}</React.Suspense>
           </div>
+          </AuthGuard>
       </SidebarInset>
     </SidebarProvider>
-    //</AuthGuard>
+      
   );
 }

@@ -30,6 +30,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { notifications } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
+import { useAuth } from "@/components/auth-guard";
+
 /**
  * Componente que renderiza las "migas de pan" (breadcrumbs) para mostrar la ubicación actual del usuario en la aplicación.
  * Utiliza el hook 'usePathname' de Next.js para obtener la ruta actual y la divide en segmentos para construir la navegación.
@@ -82,6 +84,8 @@ function Breadcrumbs() {
  * Contiene el disparador de la barra lateral para móviles, las migas de pan, la barra de búsqueda y los menús de usuario/notificaciones.
  */
 export function DashboardHeader() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
       {/* Contenedor para el botón de la barra lateral (en móvil) y las migas de pan. */}
@@ -154,9 +158,9 @@ export function DashboardHeader() {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel>
-              <p>Usuario Admin</p>
+              <p>{user?.name || "Usuario"}</p>
               <p className="text-xs font-normal text-muted-foreground">
-                admin@crepipep.com
+                {user?.email || "cargando..."}
               </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -171,7 +175,7 @@ export function DashboardHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Cerrar sesión</span>
             </DropdownMenuItem>
