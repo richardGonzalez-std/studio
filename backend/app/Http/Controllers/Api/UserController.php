@@ -27,12 +27,16 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'string', 'in:Sin Rol Asignado,Administrador,Colaborador'],
+            'status' => ['required', 'string', 'in:Activo,Suspendido'],
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'status' => $request->status,
         ]);
 
         return response()->json($user, 201);
@@ -57,6 +61,8 @@ class UserController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['sometimes', 'confirmed', Rules\Password::defaults()],
+            'role' => ['sometimes', 'string', 'in:Sin Rol Asignado,Administrador,Colaborador'],
+            'status' => ['sometimes', 'string', 'in:Activo,Suspendido'],
         ]);
 
         if ($request->has('name')) {
@@ -67,6 +73,12 @@ class UserController extends Controller
         }
         if ($request->has('password')) {
             $user->password = Hash::make($request->password);
+        }
+        if ($request->has('role')) {
+            $user->role = $request->role;
+        }
+        if ($request->has('status')) {
+            $user->status = $request->status;
         }
 
         $user->save();

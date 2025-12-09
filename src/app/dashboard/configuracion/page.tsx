@@ -38,6 +38,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { patronos, Patrono, deductoras, Deductora, creditConfigs } from '@/lib/data';
 import { API_BASE_URL } from '@/lib/env';
 import { useAuth } from '@/components/auth-guard';
@@ -54,6 +61,8 @@ export default function ConfiguracionPage() {
     email: '',
     password: '',
     password_confirmation: '',
+    role: 'Sin Rol Asignado',
+    status: 'Activo',
   });
 
   useEffect(() => {
@@ -113,7 +122,14 @@ export default function ConfiguracionPage() {
           description: "El usuario ha sido registrado exitosamente.",
         });
         setIsCreateUserOpen(false);
-        setNewUser({ name: '', email: '', password: '', password_confirmation: '' });
+        setNewUser({ 
+          name: '', 
+          email: '', 
+          password: '', 
+          password_confirmation: '',
+          role: 'Sin Rol Asignado',
+          status: 'Activo'
+        });
         fetchUsers();
       } else {
         const errorData = await res.json();
@@ -387,6 +403,39 @@ export default function ConfiguracionPage() {
                         required
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Rol</Label>
+                        <Select
+                          value={newUser.role}
+                          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                        >
+                          <SelectTrigger id="role">
+                            <SelectValue placeholder="Seleccionar rol" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Sin Rol Asignado">Sin Rol Asignado</SelectItem>
+                            <SelectItem value="Administrador">Administrador</SelectItem>
+                            <SelectItem value="Colaborador">Colaborador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Estado</Label>
+                        <Select
+                          value={newUser.status}
+                          onValueChange={(value) => setNewUser({ ...newUser, status: value })}
+                        >
+                          <SelectTrigger id="status">
+                            <SelectValue placeholder="Seleccionar estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Activo">Activo</SelectItem>
+                            <SelectItem value="Suspendido">Suspendido</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <DialogFooter>
                       <Button type="submit" disabled={creatingUser}>
                         {creatingUser && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -409,6 +458,8 @@ export default function ConfiguracionPage() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead>Fecha Creación</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -418,6 +469,14 @@ export default function ConfiguracionPage() {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role || 'Sin Rol Asignado'}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          user.status === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {user.status || 'Activo'}
+                        </span>
+                      </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

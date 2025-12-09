@@ -439,3 +439,35 @@ Se extendió el análisis de "pruebas imaginarias" a los controladores y modelos
   - `backend/database/migrations/2025_12_06_203209_create_credits_table.php`
   - `backend/database/seeders/DatabaseSeeder.php`
   - `backend/database/seeders/CreditSeeder.php`
+
+---
+
+## Implementación de Gestión de Usuarios y Correcciones de Auth
+
+- Fecha: 2025-12-09 15:30
+- Rol: `Desarrollador Fullstack`
+- Autor: `GitHub Copilot`
+- Resumen: Implementación completa del módulo de administración de usuarios y estabilización del sistema de autenticación.
+- Acciones tomadas:
+  - **Seguridad y Auth**:
+    - Implementado componente `AuthGuard` para proteger rutas privadas en el frontend.
+    - Corregido endpoint `/api/me` en Laravel para devolver correctamente el usuario autenticado.
+    - Reparada la funcionalidad de Logout en `DashboardHeader` utilizando el hook `useAuth`.
+  - **Backend (Usuarios)**:
+    - Creado `UserController` para manejar operaciones CRUD de usuarios.
+    - Generada y ejecutada migración `add_role_and_status_to_users_table` para añadir campos `role` y `status` con Enums específicos.
+    - Actualizado modelo `User` para permitir asignación masiva de los nuevos campos.
+    - Definidas rutas API RESTful para usuarios.
+  - **Frontend (Configuración)**:
+    - Integrada gestión de usuarios en `ConfiguracionPage` (pestaña "Usuarios").
+    - Implementada tabla de visualización con columnas para Rol y Estado.
+    - Creado formulario (Dialog) para registro de nuevos usuarios con selectores de Rol y Estado.
+- Archivos modificados:
+  - `src/components/auth-guard.tsx`
+  - `backend/routes/api.php`
+  - `src/components/dashboard-header.tsx`
+  - `backend/app/Http/Controllers/Api/UserController.php`
+  - `backend/database/migrations/2025_12_09_211607_add_role_and_status_to_users_table.php`
+  - `backend/app/Models/User.php`
+  - `src/app/dashboard/configuracion/page.tsx`
+
