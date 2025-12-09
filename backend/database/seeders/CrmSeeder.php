@@ -16,7 +16,7 @@ class CrmSeeder extends Seeder
     {
         // 1. Seed Users (Staff)
         $usersData = [
-            ['name' => 'Administrador', 'email' => 'admin@example.cr'],
+            ['name' => 'Administrador', 'email' => 'admin@pep.cr'],
             ['name' => 'Carlos Mendez', 'email' => 'carlosm@pep.cr'],
             ['name' => 'Wilmer Marquez', 'email' => 'coder@gomez.cr'],
             ['name' => 'Ahixel Rojas', 'email' => 'ahixel@pep.cr'],
@@ -29,7 +29,7 @@ class CrmSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],
-                    'password' => Hash::make('password'), // Default password
+                    'password' => Hash::make('admin123'), // Default password
                 ]
             );
         }
