@@ -267,12 +267,21 @@ export function useChallenges(status: string = 'active') {
 /**
  * Hook para un challenge específico
  */
-export function useChallengeDetail(challengeId: number) {
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [progress, setProgress] = useState<ChallengeProgress | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function useChallengeDetail(challengeId: number | null | undefined) {
+  const [data, setData] = useState<{ challenge: Challenge | null; progress: ChallengeProgress | null }>({
+    challenge: null,
+    progress: null,
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchChallenge = useCallback(async () => {
+    // Don't fetch if challengeId is invalid (0, null, undefined)
+    if (!challengeId) {
+      setData({ challenge: null, progress: null });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const [challengeData, progressData] = await Promise.all([
@@ -282,10 +291,13 @@ export function useChallengeDetail(challengeId: number) {
         fetchWithAuth<ChallengeProgress>(`/rewards/challenges/${challengeId}/progress`).catch(() => null),
       ]);
 
-      setChallenge(challengeData.challenge);
-      setProgress(progressData);
+      setData({
+        challenge: challengeData.challenge,
+        progress: progressData,
+      });
     } catch (err) {
       console.error('Error fetching challenge:', err);
+      setData({ challenge: null, progress: null });
     } finally {
       setIsLoading(false);
     }
@@ -295,7 +307,7 @@ export function useChallengeDetail(challengeId: number) {
     fetchChallenge();
   }, [fetchChallenge]);
 
-  return { challenge, progress, isLoading, refetch: fetchChallenge };
+  return { data, isLoading, refetch: fetchChallenge };
 }
 
 /**
@@ -387,4 +399,95 @@ export function useRedemptions(status?: string) {
   }, [fetchRedemptions]);
 
   return { redemptions, isLoading, refetch: fetchRedemptions };
+}
+
+// Tipos para Analytics
+export interface AnalyticsOverview {
+  total_users: number;
+  active_users: number;
+  total_points_distributed: number;
+  total_badges_awarded: number;
+  total_challenges_completed: number;
+  total_redemptions: number;
+}
+
+export interface AnalyticsTrends {
+  users_change: number;
+  points_change: number;
+  badges_change: number;
+  challenges_change: number;
+}
+
+export interface TopAction {
+  action: string;
+  label: string;
+  count: number;
+  points: number;
+}
+
+export interface BadgeDistribution {
+  rarity: string;
+  count: number;
+  percentage: number;
+}
+
+export interface ChallengeStats {
+  active: number;
+  completed: number;
+  participation_rate: number;
+  avg_completion_time: number;
+}
+
+export interface RedemptionByCategory {
+  category: string;
+  count: number;
+  value: number;
+}
+
+export interface WeeklyActivity {
+  day: string;
+  date: string;
+  points: number;
+  badges: number;
+  challenges: number;
+}
+
+export interface AnalyticsData {
+  overview: AnalyticsOverview;
+  trends: AnalyticsTrends;
+  top_actions: TopAction[];
+  badge_distribution: BadgeDistribution[];
+  challenge_stats: ChallengeStats;
+  redemptions_by_category: RedemptionByCategory[];
+  weekly_activity: WeeklyActivity[];
+  period: string;
+}
+
+/**
+ * Hook para analytics de gamificación
+ */
+export function useRewardsAnalytics(period: string = 'month') {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await fetchWithAuth<AnalyticsData>(`/rewards/analytics?period=${period}`);
+      setData(result);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError(err instanceof Error ? err : new Error('Error desconocido'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  return { data, isLoading, error, refetch: fetchAnalytics };
 }

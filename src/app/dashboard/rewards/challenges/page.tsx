@@ -70,22 +70,24 @@ function formatTimeRemaining(seconds: number | null | undefined): string {
 
 function ChallengeCard({ 
   challenge, 
-  progress,
   onJoin,
   onViewDetails,
+  isJoining,
 }: { 
   challenge: Challenge;
-  progress?: ChallengeProgress;
   onJoin: () => void;
   onViewDetails: () => void;
+  isJoining?: boolean;
 }) {
   const type = typeConfig[challenge.type as keyof typeof typeConfig] || typeConfig.individual;
-  const difficulty = difficultyConfig[challenge.difficulty as keyof typeof difficultyConfig] || difficultyConfig.medium;
   const TypeIcon = type.icon;
   
-  const isJoined = !!progress;
-  const isCompleted = progress?.status === "completed";
-  const progressPercent = progress?.progressPercentage || 0;
+  const isJoined = challenge.isJoined;
+  const isCompleted = challenge.isCompleted;
+  // Calculate progress percentage from objectives
+  const totalObjectives = challenge.objectives?.length || 0;
+  const completedObjectives = challenge.objectives?.filter(obj => obj.completed)?.length || 0;
+  const progressPercent = totalObjectives > 0 ? (completedObjectives / totalObjectives) * 100 : 0;
 
   return (
     <Card className={cn(
@@ -101,9 +103,6 @@ function ChallengeCard({
             <div>
               <CardTitle className="text-base line-clamp-1">{challenge.name}</CardTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className={cn("text-xs", difficulty.color, difficulty.bgColor)}>
-                  {difficulty.label}
-                </Badge>
                 <Badge variant="secondary" className="text-xs">
                   {type.label}
                 </Badge>
@@ -133,28 +132,28 @@ function ChallengeCard({
         )}
 
         {/* Time Remaining */}
-        {challenge.endsAt && (
+        {challenge.endDate && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
-            <span>{formatTimeRemaining(challenge.remainingTime)}</span>
+            <span>Termina: {new Date(challenge.endDate).toLocaleDateString()}</span>
           </div>
         )}
 
         {/* Rewards */}
         <div className="flex items-center gap-4 mt-3 pt-3 border-t">
-          {challenge.pointsReward && (
+          {challenge.rewards?.points && (
             <div className="flex items-center gap-1 text-sm">
               <Star className="h-4 w-4 text-amber-500" />
-              <span className="font-medium">{challenge.pointsReward}</span>
+              <span className="font-medium">{challenge.rewards.points}</span>
             </div>
           )}
-          {challenge.xpReward && (
+          {challenge.rewards?.xp && (
             <div className="flex items-center gap-1 text-sm">
               <Sparkles className="h-4 w-4 text-purple-500" />
-              <span className="font-medium">{challenge.xpReward} XP</span>
+              <span className="font-medium">{challenge.rewards.xp} XP</span>
             </div>
           )}
-          {challenge.badgeReward && (
+          {challenge.rewards?.badges && challenge.rewards.badges.length > 0 && (
             <div className="flex items-center gap-1 text-sm">
               <Medal className="h-4 w-4 text-blue-500" />
               <span className="font-medium">Badge</span>
@@ -167,7 +166,7 @@ function ChallengeCard({
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <Users className="h-3 w-3" />
             <span>
-              {challenge.participantCount || 0} / {challenge.maxParticipants} participantes
+              {challenge.participantsCount || 0} / {challenge.maxParticipants} participantes
             </span>
           </div>
         )}
@@ -184,8 +183,12 @@ function ChallengeCard({
             Ver progreso
           </Button>
         ) : (
-          <Button className="w-full" onClick={onJoin}>
-            <Play className="h-4 w-4 mr-2" />
+          <Button className="w-full" onClick={onJoin} disabled={isJoining}>
+            {isJoining ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4 mr-2" />
+            )}
             Participar
           </Button>
         )}
@@ -205,14 +208,13 @@ function ChallengeDetailDialog({
   onClose: () => void;
   onJoin: () => void;
 }) {
-  const { data, isLoading } = useChallengeDetail(challengeId || 0);
+  const { data, isLoading } = useChallengeDetail(challengeId);
   
-  if (!challengeId) return null;
+  if (!challengeId || !open) return null;
 
   const challenge = data?.challenge;
   const progress = data?.progress;
   const type = challenge ? typeConfig[challenge.type as keyof typeof typeConfig] : typeConfig.individual;
-  const difficulty = challenge ? difficultyConfig[challenge.difficulty as keyof typeof difficultyConfig] : difficultyConfig.medium;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -229,18 +231,11 @@ function ChallengeDetailDialog({
             <DialogHeader>
               <div className="flex items-center gap-3">
                 <div className={cn("p-3 rounded-lg", type.color, "text-white")}>
-                  {challenge.icon ? (
-                    <span className="text-xl">{challenge.icon}</span>
-                  ) : (
-                    <Target className="h-6 w-6" />
-                  )}
+                  <Target className="h-6 w-6" />
                 </div>
                 <div>
                   <DialogTitle>{challenge.name}</DialogTitle>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className={cn(difficulty.color, difficulty.bgColor)}>
-                      {difficulty.label}
-                    </Badge>
                     <Badge variant="secondary">{type.label}</Badge>
                   </div>
                 </div>
@@ -258,17 +253,17 @@ function ChallengeDetailDialog({
                   <h4 className="font-medium mb-3">Objetivos</h4>
                   <div className="space-y-3">
                     {challenge.objectives.map((objective, index) => {
-                      const current = progress?.progress?.[index]?.current || 0;
+                      const current = objective.current || 0;
                       const target = objective.target;
                       const percent = Math.min(100, (current / target) * 100);
-                      const isComplete = current >= target;
+                      const isComplete = objective.completed || current >= target;
 
                       return (
                         <div key={index} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className={cn(isComplete && "text-green-500")}>
                               {isComplete && <CheckCircle2 className="h-4 w-4 inline mr-1" />}
-                              {objective.description}
+                              {objective.name || objective.description}
                             </span>
                             <span className="font-medium">
                               {current} / {target}
@@ -286,30 +281,30 @@ function ChallengeDetailDialog({
               <div className="border rounded-lg p-4">
                 <h4 className="font-medium mb-3">Recompensas</h4>
                 <div className="flex gap-6">
-                  {challenge.pointsReward && (
+                  {challenge.rewards?.points && (
                     <div className="flex items-center gap-2">
                       <Star className="h-5 w-5 text-amber-500" />
                       <div>
-                        <span className="text-lg font-bold">{challenge.pointsReward}</span>
+                        <span className="text-lg font-bold">{challenge.rewards.points}</span>
                         <p className="text-xs text-muted-foreground">puntos</p>
                       </div>
                     </div>
                   )}
-                  {challenge.xpReward && (
+                  {challenge.rewards?.xp && (
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-500" />
                       <div>
-                        <span className="text-lg font-bold">{challenge.xpReward}</span>
+                        <span className="text-lg font-bold">{challenge.rewards.xp}</span>
                         <p className="text-xs text-muted-foreground">XP</p>
                       </div>
                     </div>
                   )}
-                  {challenge.badgeReward && (
+                  {challenge.rewards?.badges && challenge.rewards.badges.length > 0 && (
                     <div className="flex items-center gap-2">
                       <Medal className="h-5 w-5 text-blue-500" />
                       <div>
                         <span className="text-lg font-bold">Badge</span>
-                        <p className="text-xs text-muted-foreground">{challenge.badgeReward.name}</p>
+                        <p className="text-xs text-muted-foreground">Insignia especial</p>
                       </div>
                     </div>
                   )}
@@ -317,16 +312,16 @@ function ChallengeDetailDialog({
               </div>
 
               {/* Time */}
-              {(challenge.startsAt || challenge.endsAt) && (
+              {(challenge.startDate || challenge.endDate) && (
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <div>
-                    {challenge.startsAt && (
-                      <span>Inicio: {new Date(challenge.startsAt).toLocaleDateString()}</span>
+                    {challenge.startDate && (
+                      <span>Inicio: {new Date(challenge.startDate).toLocaleDateString()}</span>
                     )}
-                    {challenge.startsAt && challenge.endsAt && <span className="mx-2">•</span>}
-                    {challenge.endsAt && (
-                      <span>Fin: {new Date(challenge.endsAt).toLocaleDateString()}</span>
+                    {challenge.startDate && challenge.endDate && <span className="mx-2">•</span>}
+                    {challenge.endDate && (
+                      <span>Fin: {new Date(challenge.endDate).toLocaleDateString()}</span>
                     )}
                   </div>
                 </div>
@@ -334,12 +329,12 @@ function ChallengeDetailDialog({
             </div>
 
             <DialogFooter>
-              {progress?.status === "completed" ? (
+              {challenge.isCompleted ? (
                 <Button variant="outline" disabled className="w-full">
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Completado
                 </Button>
-              ) : progress ? (
+              ) : challenge.isJoined ? (
                 <Button variant="outline" onClick={onClose} className="w-full">
                   Cerrar
                 </Button>
@@ -399,40 +394,26 @@ export default function ChallengesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [joiningId, setJoiningId] = useState<number | null>(null);
 
-  const { data, isLoading, refetch } = useChallenges();
+  const { challenges, isLoading, refetch, joinChallenge } = useChallenges();
 
-  const challenges = data?.challenges || [];
-  const myParticipations = data?.myParticipations || [];
-  const progressMap = new Map(myParticipations.map(p => [p.challengeId, p]));
-
-  // Filter challenges
-  const filteredChallenges = challenges.filter(c => {
+  // Filter challenges by type
+  const filteredChallenges = challenges.filter((c: Challenge) => {
     if (typeFilter === "all") return true;
     return c.type === typeFilter;
   });
 
-  // Separate by status
-  const activeChallenges = filteredChallenges.filter(c => {
-    const progress = progressMap.get(c.id);
-    return progress?.status === "active";
-  });
-
-  const availableChallenges = filteredChallenges.filter(c => {
-    return !progressMap.has(c.id) && c.isCurrent;
-  });
-
-  const completedChallenges = filteredChallenges.filter(c => {
-    const progress = progressMap.get(c.id);
-    return progress?.status === "completed";
-  });
+  // Separate by status using isJoined and isCompleted from the challenge itself
+  const activeChallenges = filteredChallenges.filter((c: Challenge) => c.isJoined && !c.isCompleted);
+  const availableChallenges = filteredChallenges.filter((c: Challenge) => !c.isJoined && c.isActive);
+  const completedChallenges = filteredChallenges.filter((c: Challenge) => c.isCompleted);
 
   const handleJoin = async (challengeId: number) => {
     setJoiningId(challengeId);
     try {
-      // Aquí iría la llamada a la API para unirse al challenge
-      // await joinChallenge(challengeId);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simular
-      refetch();
+      const result = await joinChallenge(challengeId);
+      if (!result.success) {
+        console.error("Error joining challenge:", result.error);
+      }
     } catch (error) {
       console.error("Error joining challenge:", error);
     } finally {
@@ -550,13 +531,13 @@ export default function ChallengesPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeChallenges.map((challenge) => (
+                {activeChallenges.map((challenge: Challenge) => (
                   <ChallengeCard
                     key={challenge.id}
                     challenge={challenge}
-                    progress={progressMap.get(challenge.id)}
                     onJoin={() => handleJoin(challenge.id)}
                     onViewDetails={() => handleViewDetails(challenge.id)}
+                    isJoining={joiningId === challenge.id}
                   />
                 ))}
               </div>
@@ -576,12 +557,13 @@ export default function ChallengesPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableChallenges.map((challenge) => (
+                {availableChallenges.map((challenge: Challenge) => (
                   <ChallengeCard
                     key={challenge.id}
                     challenge={challenge}
                     onJoin={() => handleJoin(challenge.id)}
                     onViewDetails={() => handleViewDetails(challenge.id)}
+                    isJoining={joiningId === challenge.id}
                   />
                 ))}
               </div>
@@ -601,11 +583,10 @@ export default function ChallengesPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedChallenges.map((challenge) => (
+                {completedChallenges.map((challenge: Challenge) => (
                   <ChallengeCard
                     key={challenge.id}
                     challenge={challenge}
-                    progress={progressMap.get(challenge.id)}
                     onJoin={() => {}}
                     onViewDetails={() => handleViewDetails(challenge.id)}
                   />

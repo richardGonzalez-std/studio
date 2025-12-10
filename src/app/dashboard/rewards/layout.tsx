@@ -11,6 +11,8 @@ import {
   Gift,
   BarChart3,
   Flame,
+  PieChart,
+  Settings,
 } from "lucide-react";
 
 const rewardsNavItems = [
@@ -39,6 +41,17 @@ const rewardsNavItems = [
     title: "Catálogo",
     href: "/dashboard/rewards/catalog",
     icon: Gift,
+  },
+  {
+    title: "Analytics",
+    href: "/dashboard/rewards/analytics",
+    icon: PieChart,
+  },
+  {
+    title: "Configuración",
+    href: "/dashboard/rewards/settings",
+    icon: Settings,
+    adminOnly: true,
   },
 ];
 

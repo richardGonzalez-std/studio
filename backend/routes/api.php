@@ -74,6 +74,15 @@ Route::prefix('rewards')->group(function () {
     Route::get('/history', [RewardController::class, 'history']);
     Route::get('/dashboard', [RewardController::class, 'dashboard']);
 
+    // Analytics
+    Route::get('/analytics', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'all']);
+    Route::get('/analytics/overview', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'overview']);
+    Route::get('/analytics/top-actions', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'topActions']);
+    Route::get('/analytics/badge-distribution', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'badgeDistribution']);
+    Route::get('/analytics/challenge-stats', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'challengeStats']);
+    Route::get('/analytics/redemptions-by-category', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'redemptionsByCategory']);
+    Route::get('/analytics/weekly-activity', [\App\Http\Controllers\Api\Rewards\AnalyticsController::class, 'weeklyActivity']);
+
     // Badges
     Route::get('/badges', [BadgeController::class, 'index']);
     Route::get('/badges/available', [BadgeController::class, 'available']);
