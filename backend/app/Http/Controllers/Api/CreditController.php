@@ -56,7 +56,46 @@ class CreditController extends Controller
     public function show($id)
     {
         $credit = Credit::with(['lead', 'opportunity', 'documents', 'payments'])->findOrFail($id);
+
+        // Calculate current balance if not stored
+        $lastPayment = $credit->payments()->where('estado', 'Pagado')->orderBy('numero_cuota', 'desc')->first();
+        $credit->saldo = $lastPayment ? $lastPayment->nuevo_saldo : $credit->monto_credito;
+
         return response()->json($credit);
+    }
+
+    public function balance($id)
+    {
+        $credit = Credit::with(['payments', 'lead'])->findOrFail($id);
+
+        $payments = $credit->payments;
+        $paidPayments = $payments->where('estado', 'Pagado');
+
+        $totalPrincipalPaid = $paidPayments->sum('amortizacion');
+        $totalInterestPaid = $paidPayments->sum('interes_corriente') + $paidPayments->sum('interes_moratorio');
+        $totalPaid = $paidPayments->sum('cuota'); // Or sum of all components
+
+        $lastPayment = $paidPayments->sortByDesc('numero_cuota')->first();
+        $currentBalance = $lastPayment ? $lastPayment->nuevo_saldo : $credit->monto_credito;
+
+        $nextPayment = $payments->where('estado', '!=', 'Pagado')->sortBy('numero_cuota')->first();
+
+        return response()->json([
+            'credit_id' => $credit->id,
+            'numero_operacion' => $credit->numero_operacion,
+            'client_name' => $credit->lead ? $credit->lead->name : 'N/A',
+            'monto_original' => $credit->monto_credito,
+            'saldo_actual' => $currentBalance,
+            'total_capital_pagado' => $totalPrincipalPaid,
+            'total_intereses_pagados' => $totalInterestPaid,
+            'total_pagado' => $totalPaid,
+            'fecha_ultimo_pago' => $lastPayment ? $lastPayment->fecha_pago : null,
+            'proximo_pago' => $nextPayment ? [
+                'fecha' => $nextPayment->fecha_cuota,
+                'monto' => $nextPayment->cuota
+            ] : null,
+            'progreso_pagos' => $credit->plazo > 0 ? round(($paidPayments->count() / $credit->plazo) * 100, 2) : 0,
+        ]);
     }
 
     public function update(Request $request, $id)

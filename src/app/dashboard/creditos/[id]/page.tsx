@@ -203,27 +203,35 @@ function CreditDetailClient({ id }: { id: string }) {
             Detalle del Crédito: {credit.numero_operacion || credit.reference}
           </h1>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsPanelVisible(!isPanelVisible)}
-              >
-                {isPanelVisible ? (
-                  <PanelRightClose className="h-4 w-4" />
-                ) : (
-                  <PanelRightOpen className="h-4 w-4" />
-                )}
-                <span className="sr-only">Toggle Panel</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{isPanelVisible ? 'Ocultar Panel' : 'Mostrar Panel'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/dashboard/creditos/${id}/balance`} target="_blank">
+              <FileText className="mr-2 h-4 w-4" />
+              Balance General
+            </Link>
+          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsPanelVisible(!isPanelVisible)}
+                >
+                  {isPanelVisible ? (
+                    <PanelRightClose className="h-4 w-4" />
+                  ) : (
+                    <PanelRightOpen className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Toggle Panel</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isPanelVisible ? 'Ocultar Panel' : 'Mostrar Panel'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
