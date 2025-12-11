@@ -790,22 +790,22 @@ export default function CreditsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Estado</TableHead>
-                        <TableHead>Divisa</TableHead>
+                        <TableHead>ID Documento</TableHead>
+                        <TableHead>Nombre</TableHead>
                         <TableHead>No. Operación</TableHead>
-                        <TableHead>Línea</TableHead>
-                        <TableHead>1ª Deducción</TableHead>
+                        <TableHead>Divisa</TableHead>
                         <TableHead>Monto</TableHead>
                         <TableHead>Saldo</TableHead>
                         <TableHead>Cuota</TableHead>
+                        <TableHead>Línea</TableHead>
+                        <TableHead>1ª Deducción</TableHead>
                         <TableHead>Garantía</TableHead>
                         <TableHead>Vencimiento</TableHead>
                         <TableHead>Proceso</TableHead>
-                        <TableHead>ID Documento</TableHead>
                         <TableHead>Tasa</TableHead>
                         <TableHead>Plazo</TableHead>
                         <TableHead>Cuotas Atrasadas</TableHead>
                         <TableHead>Deductora</TableHead>
-                        <TableHead>Lead</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -813,22 +813,22 @@ export default function CreditsPage() {
                       {getCreditsForTab(tab.value).map((credit) => (
                         <TableRow key={credit.id}>
                           <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
-                          <TableCell>{credit.divisa || "CRC"}</TableCell>
+                          <TableCell>{credit.documento_id || "-"}</TableCell>
+                          <TableCell>{credit.client?.name || credit.lead?.name || "-"}</TableCell>
                           <TableCell className="font-medium">{credit.numero_operacion || credit.reference || "-"}</TableCell>
-                          <TableCell>{credit.linea || "-"}</TableCell>
-                          <TableCell>{formatDate(credit.primera_deduccion)}</TableCell>
+                          <TableCell>{credit.divisa || "CRC"}</TableCell>
                           <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.monto_credito || 0)}</TableCell>
                           <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.saldo || 0)}</TableCell>
                           <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.cuota || 0)}</TableCell>
+                          <TableCell>{credit.linea || "-"}</TableCell>
+                          <TableCell>{formatDate(credit.primera_deduccion)}</TableCell>
                           <TableCell>{credit.garantia || "-"}</TableCell>
                           <TableCell>{formatDate(credit.fecha_culminacion_credito)}</TableCell>
                           <TableCell>{credit.proceso || "-"}</TableCell>
-                          <TableCell>{credit.documento_id || "-"}</TableCell>
                           <TableCell>{credit.tasa_anual ? `${credit.tasa_anual}%` : "-"}</TableCell>
                           <TableCell>{credit.plazo ? `${credit.plazo} meses` : "-"}</TableCell>
                           <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
                           <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
-                          <TableCell>{credit.lead?.name || credit.client?.name || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button
