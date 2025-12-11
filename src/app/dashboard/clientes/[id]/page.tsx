@@ -44,6 +44,7 @@ export default function ClientDetailPage() {
   const [isOpportunityDialogOpen, setIsOpportunityDialogOpen] = useState(false);
   const [agents, setAgents] = useState<{id: number, name: string}[]>([]);
   const [deductoras, setDeductoras] = useState<{id: string, nombre: string}[]>([]);
+  const [leads, setLeads] = useState<{id: number, name: string}[]>([]);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -77,12 +78,30 @@ export default function ClientDetailPage() {
         }
     };
 
+    const fetchLeads = async () => {
+        try {
+            const response = await api.get('/api/leads');
+            const data = response.data.data || response.data;
+            setLeads(data.map((l: any) => ({ id: l.id, name: l.name })));
+        } catch (error) {
+            console.error("Error fetching leads:", error);
+        }
+    };
+
     if (id) {
       fetchClient();
       fetchAgents();
       fetchDeductoras();
+      fetchLeads();
     }
   }, [id, toast]);
+
+  const leadName = React.useMemo(() => {
+      if (!client || leads.length === 0) return null;
+      const leadId = (client as any).lead_id || (client as any).relacionado_a;
+      const found = leads.find(l => String(l.id) === String(leadId));
+      return found?.name;
+  }, [client, leads]);
 
   const handleInputChange = (field: keyof Client, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -231,7 +250,7 @@ export default function ClientDetailPage() {
         <div className={isPanelVisible ? 'space-y-6 lg:col-span-3' : 'space-y-6 lg:col-span-5'}>
           <Card>
             <div className="p-6 pb-0">
-                <h1 className="text-2xl font-bold tracking-tight uppercase">{client.name} {(client as any).apellido1}</h1>
+                <h1 className="text-2xl font-bold tracking-tight uppercase">{client.name} {(client as any).apellido1} {(client as any).apellido2}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <span>ID #{client.id}</span>
                     <span> · </span>
@@ -245,7 +264,7 @@ export default function ClientDetailPage() {
                         {client.status || (client.is_active ? "Activo" : "Inactivo")}
                     </Badge>
                     <Badge variant="outline" className="rounded-full px-3 font-normal text-slate-600">
-                        Cliente
+                        {leadName || client.relacionado_a || "Cliente"}
                     </Badge>
 
                     {!isEditMode && (

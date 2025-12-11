@@ -4,12 +4,17 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MoreHorizontal, PlusCircle, Eye, RefreshCw, Pencil, FileText, FileSpreadsheet } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Eye, RefreshCw, Pencil, FileText, FileSpreadsheet, Check, ChevronsUpDown } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Card,
   CardContent,
@@ -50,46 +55,46 @@ import api from "@/lib/axios";
 import { credits as mockCredits } from "@/lib/data";
 
 interface ClientOption {
-id: string;
-    name: string;
-    cedula: string;
-    email: string;
-    phone: string;
-    clientStatus?: 'Activo' | 'Moroso' | 'En cobro' | 'Fallecido' | 'Inactivo';
-    activeCredits?: number;
-    registeredOn?: string;
-    avatarUrl?: string;
-    status?: string;
-    is_active?: boolean;
-    created_at?: string;
-    apellido1?: string;
-    apellido2?: string;
-    whatsapp?: string;
-    tel_casa?: string;
-    tel_amigo?: string;
-    province?: string;
-    canton?: string;
-    distrito?: string;
-    direccion1?: string;
-    direccion2?: string;
-    ocupacion?: string;
-    estado_civil?: string;
-    fecha_nacimiento?: string;
-    relacionado_a?: string;
-    tipo_relacion?: string;
-    notes?: string;
-    source?: string;
-    genero?: string;
-    nacionalidad?: string;
-    telefono2?: string;
-    telefono3?: string;
-    institucion_labora?: string;
-    departamento_cargo?: string;
-    deductora_id?: string | number;
-    lead_status_id?: number;
-    assigned_to_id?: number;
-    person_type_id?: number;
-    opportunities?: OpportunityOption[];
+  id: string;
+  name: string;
+  cedula: string;
+  email: string;
+  phone: string;
+  clientStatus?: 'Activo' | 'Moroso' | 'En cobro' | 'Fallecido' | 'Inactivo';
+  activeCredits?: number;
+  registeredOn?: string;
+  avatarUrl?: string;
+  status?: string;
+  is_active?: boolean;
+  created_at?: string;
+  apellido1?: string;
+  apellido2?: string;
+  whatsapp?: string;
+  tel_casa?: string;
+  tel_amigo?: string;
+  province?: string;
+  canton?: string;
+  distrito?: string;
+  direccion1?: string;
+  direccion2?: string;
+  ocupacion?: string;
+  estado_civil?: string;
+  fecha_nacimiento?: string;
+  relacionado_a?: string;
+  tipo_relacion?: string;
+  notes?: string;
+  source?: string;
+  genero?: string;
+  nacionalidad?: string;
+  telefono2?: string;
+  telefono3?: string;
+  institucion_labora?: string;
+  departamento_cargo?: string;
+  deductora_id?: string | number;
+  lead_status_id?: number;
+  assigned_to_id?: number;
+  person_type_id?: number;
+  opportunities?: OpportunityOption[];
 }
 
 interface OpportunityOption {
@@ -140,12 +145,13 @@ interface CreditItem {
   status: string | null;
   category: string | null;
   assigned_to: string | null;
-  progress: number;
+
   opened_at: string | null;
   description: string | null;
   lead_id: number;
   opportunity_id: string | null;
   client?: ClientOption | null;
+  lead?: ClientOption | null;
   opportunity?: { id: string; title: string | null } | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -176,7 +182,7 @@ interface CreditFormValues {
   title: string;
   status: string;
   category: string;
-  progress: string;
+  monto_credito: string;
   leadId: string;
   opportunityId: string;
   assignedTo: string;
@@ -216,8 +222,8 @@ const TAB_STATUS_FILTERS: Record<string, string[]> = {
 
 const TRACKED_STATUS_SET = new Set(
   Object.values(TAB_STATUS_FILTERS)
-      .flat()
-      .map((status) => status.toLowerCase())
+    .flat()
+    .map((status) => status.toLowerCase())
 );
 
 const normalizeStatus = (status?: string | null): string => (status ?? "").trim().toLowerCase();
@@ -257,7 +263,11 @@ export default function CreditsPage() {
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(true);
   const [tabValue, setTabValue] = useState("all");
-  
+
+  // Combobox state
+  const [openCombobox, setOpenCombobox] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [dialogState, setDialogState] = useState<"create" | "edit" | null>(null);
   const [dialogCredit, setDialogCredit] = useState<CreditItem | null>(null);
   const [formValues, setFormValues] = useState<CreditFormValues>({
@@ -265,7 +275,7 @@ export default function CreditsPage() {
     title: "",
     status: CREDIT_STATUS_OPTIONS[0],
     category: CREDIT_CATEGORY_OPTIONS[0],
-    progress: "0",
+    monto_credito: "",
     leadId: "",
     opportunityId: "",
     assignedTo: "",
@@ -277,23 +287,29 @@ export default function CreditsPage() {
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [statusCredit, setStatusCredit] = useState<CreditItem | null>(null);
-  const [statusForm, setStatusForm] = useState({ status: CREDIT_STATUS_OPTIONS[0] as string, progress: "0" });
-  
+  const [statusForm, setStatusForm] = useState({ status: CREDIT_STATUS_OPTIONS[0] as string });
+
   const [isDocumentsOpen, setIsDocumentsOpen] = useState(false);
   const [documentsCredit, setDocumentsCredit] = useState<CreditItem | null>(null);
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailCredit, setDetailCredit] = useState<CreditItem | null>(null);
 
-  // Drag scroll state
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const tableRef = useRef<HTMLDivElement>(null);
+  // Drag scroll state 
+  
 
   const currentLead = useMemo(() => {
     return formValues.leadId ? leads.find((lead) => lead.id === formValues.leadId) : null;
   }, [formValues.leadId, leads]);
+
+  const filteredLeads = useMemo(() => {
+    if (!searchQuery) return leads;
+    const lowerQuery = searchQuery.toLowerCase();
+    return leads.filter(lead =>
+      lead.name.toLowerCase().includes(lowerQuery) ||
+      (lead.cedula && lead.cedula.includes(lowerQuery))
+    );
+  }, [leads, searchQuery]);
 
   const availableOpportunities = useMemo(() => {
     return opportunities.filter((opportunity) => {
@@ -304,36 +320,50 @@ export default function CreditsPage() {
     });
   }, [opportunities, formValues.leadId, dialogCredit]);
 
-  // Drag scroll handlers
+// --- Drag Scroll Logic Corregida ---
+  
+  // 1. Usamos useRef para valores que cambian rápido (física)
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const isDown = useRef(false); // Reemplaza isDragging para la lógica
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+
+  // 2. Usamos useState SOLO para cambiar el cursor visualmente
+  const [isGrabbing, setIsGrabbing] = useState(false);
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!tableRef.current) return;
+    if (!sliderRef.current) return;
+    e.preventDefault();
     
-    setIsDragging(true);
-    setStartX(e.pageX);
-    setScrollLeft(tableRef.current.scrollLeft);
+    // Guardamos estado en Refs (Instantáneo)
+    isDown.current = true;
+    startX.current = e.pageX - sliderRef.current.offsetLeft;
+    scrollLeft.current = sliderRef.current.scrollLeft;
     
-    // Add document listeners for smooth dragging
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    // Actualizamos UI
+    setIsGrabbing(true);
   };
 
   const handleMouseLeave = () => {
-    // Don't stop dragging on mouse leave - let document handle it
+    isDown.current = false;
+    setIsGrabbing(false);
   };
 
   const handleMouseUp = () => {
-    setIsDragging(false);
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    isDown.current = false;
+    setIsGrabbing(false);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !tableRef.current) return;
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Si no está presionado, no hacemos nada
+    if (!isDown.current || !sliderRef.current) return;
     
     e.preventDefault();
-    const x = e.pageX;
-    const walk = (x - startX) * 2; // Scroll speed multiplier
-    tableRef.current.scrollLeft = scrollLeft - walk;
+    
+    // Cálculo matemático usando los Refs (Valores siempre frescos)
+    const x = e.pageX - sliderRef.current.offsetLeft;
+    const walk = (x - startX.current) * 2; // Velocidad del scroll
+    sliderRef.current.scrollLeft = scrollLeft.current - walk;
   };
 
   // Mock permission for now
@@ -343,11 +373,11 @@ export default function CreditsPage() {
     try {
       setIsLoading(true);
       const response = await api.get('/api/credits');
-      
+
       // Combine API data with mock data for testing
       const apiData = response.data;
       const apiIds = new Set(apiData.map((c: any) => c.id));
-      
+
       const formattedMockCredits = mockCredits
         .filter(c => !c.id || !apiIds.has(c.id))
         .map(c => ({
@@ -361,7 +391,7 @@ export default function CreditsPage() {
       setCredits([...apiData, ...formattedMockCredits]);
     } catch (error) {
       console.error("Error fetching credits:", error);
-      
+
       // Fallback to mock data
       const formattedMockCredits = mockCredits.map(c => ({
         ...c,
@@ -370,7 +400,7 @@ export default function CreditsPage() {
         lead: c.lead ? { ...c.lead, email: c.lead.email || null } : null,
         opportunity: c.opportunity ? { ...c.opportunity, title: c.opportunity.title || null } : null
       })) as unknown as CreditItem[];
-      
+
       setCredits(formattedMockCredits);
       toast({ title: "Info", description: "Mostrando datos de prueba.", variant: "default" });
     } finally {
@@ -383,7 +413,7 @@ export default function CreditsPage() {
       setIsLoadingLeads(true);
       const response = await api.get('/api/leads');
       const data = response.data.data || response.data;
-      setLeads(data.map((l: any) => ({ id: l.id, name: l.name, email: l.email })));
+      setLeads(data.map((l: any) => ({ id: l.id, name: l.name, email: l.email, cedula: l.cedula })));
     } catch (error) {
       console.error("Error fetching leads:", error);
     } finally {
@@ -396,8 +426,8 @@ export default function CreditsPage() {
       setIsLoadingOpportunities(true);
       const response = await api.get('/api/opportunities');
       const data = response.data.data || response.data;
-      setOpportunities(data.map((o: any) => ({ 
-        id: o.id, 
+      setOpportunities(data.map((o: any) => ({
+        id: o.id,
         title: `${o.id} - ${o.opportunity_type} - ${new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', maximumFractionDigits: 0 }).format(o.amount)}`,
         lead_id: o.lead?.id
       })));
@@ -415,29 +445,31 @@ export default function CreditsPage() {
   }, [fetchCredits, fetchLeads, fetchOpportunities]);
 
   // Cleanup drag event listeners on unmount
+
+  // Populate lead objects on credits based on lead_id
   useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
+    setCredits(prevCredits => prevCredits.map(credit => ({
+      ...credit,
+      lead: leads.find(l => String(l.id) === String(credit.lead_id)) || credit.lead
+    })));
+  }, [leads]);
 
   const getCreditsForTab = useCallback(
     (value: string): CreditItem[] => {
-        if (value === "all") {
-            return credits;
-        }
-        if (value === "otros") {
-            return credits.filter((item) => {
-                const normalized = normalizeStatus(item.status);
-                return normalized.length > 0 && !TRACKED_STATUS_SET.has(normalized);
-            });
-        }
-        const statuses = TAB_STATUS_FILTERS[value];
-        if (!statuses) {
-            return credits;
-        }
-        return credits.filter((item) => statuses.includes(normalizeStatus(item.status)));
+      if (value === "all") {
+        return credits;
+      }
+      if (value === "otros") {
+        return credits.filter((item) => {
+          const normalized = normalizeStatus(item.status);
+          return normalized.length > 0 && !TRACKED_STATUS_SET.has(normalized);
+        });
+      }
+      const statuses = TAB_STATUS_FILTERS[value];
+      if (!statuses) {
+        return credits;
+      }
+      return credits.filter((item) => statuses.includes(normalizeStatus(item.status)));
     },
     [credits]
   );
@@ -448,7 +480,7 @@ export default function CreditsPage() {
       title: "",
       status: CREDIT_STATUS_OPTIONS[0],
       category: CREDIT_CATEGORY_OPTIONS[0],
-      progress: "0",
+      monto_credito: "",
       leadId: "",
       opportunityId: "",
       assignedTo: "",
@@ -466,7 +498,7 @@ export default function CreditsPage() {
       title: credit.title,
       status: credit.status || CREDIT_STATUS_OPTIONS[0],
       category: credit.category || CREDIT_CATEGORY_OPTIONS[0],
-      progress: String(credit.progress),
+      monto_credito: String(credit.monto_credito || ""),
       leadId: String(credit.lead_id),
       opportunityId: credit.opportunity_id ? String(credit.opportunity_id) : "",
       assignedTo: credit.assigned_to || "",
@@ -487,7 +519,7 @@ export default function CreditsPage() {
         title: formValues.title,
         status: formValues.status,
         category: formValues.category,
-        progress: parseInt(formValues.progress) || 0,
+        monto_credito: parseFloat(formValues.monto_credito) || 0,
         lead_id: parseInt(formValues.leadId),
         opportunity_id: formValues.opportunityId || null,
         assigned_to: formValues.assignedTo,
@@ -517,17 +549,16 @@ export default function CreditsPage() {
     if (!statusCredit) return;
     setIsSaving(true);
     try {
-        await api.put(`/api/credits/${statusCredit.id}`, {
-            status: statusForm.status,
-            progress: parseInt(statusForm.progress) || 0
-        });
-        toast({ title: "Éxito", description: "Estado actualizado." });
-        setIsStatusOpen(false);
-        fetchCredits();
+      await api.put(`/api/credits/${statusCredit.id}`, {
+        status: statusForm.status
+      });
+      toast({ title: "Éxito", description: "Estado actualizado." });
+      setIsStatusOpen(false);
+      fetchCredits();
     } catch (error: any) {
-        toast({ title: "Error", description: error.response?.data?.message || error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.response?.data?.message || error.message, variant: "destructive" });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -546,11 +577,11 @@ export default function CreditsPage() {
       credit.cuota,
       credit.divisa
     ];
-    
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n" 
+
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + headers.join(",") + "\n"
       + row.join(",");
-      
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -563,161 +594,161 @@ export default function CreditsPage() {
   const handleExportPDF = async (credit: CreditItem) => {
     const doc = new jsPDF();
     const currentDate = new Date().toLocaleDateString('es-CR');
-    
+
     let fullCredit = credit;
     try {
-        // Fetch full credit details including payments
-        const res = await api.get(`/api/credits/${credit.id}`);
-        fullCredit = res.data;
+      // Fetch full credit details including payments
+      const res = await api.get(`/api/credits/${credit.id}`);
+      fullCredit = res.data;
     } catch (e) {
-        console.error("Error fetching full credit details for PDF", e);
+      console.error("Error fetching full credit details for PDF", e);
     }
 
     // Logo (Placeholder or load image)
     const img = new Image();
     img.src = '/logopepweb.png';
     img.onload = () => {
-        doc.addImage(img, 'PNG', 14, 10, 40, 15);
-        generatePDFContent(doc, fullCredit, currentDate);
+      doc.addImage(img, 'PNG', 14, 10, 40, 15);
+      generatePDFContent(doc, fullCredit, currentDate);
     };
     img.onerror = () => {
-        doc.setFontSize(16);
-        doc.text("CREDIPEP", 14, 20);
-        generatePDFContent(doc, fullCredit, currentDate);
+      doc.setFontSize(16);
+      doc.text("CREDIPEP", 14, 20);
+      generatePDFContent(doc, fullCredit, currentDate);
     };
   };
 
   const generatePDFContent = (doc: jsPDF, credit: CreditItem, date: string) => {
-      // Header Center
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("ESTADO DE CUENTA", 105, 15, { align: "center" });
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`REPORTE AL ${date}`, 105, 22, { align: "center" });
+    // Header Center
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("ESTADO DE CUENTA", 105, 15, { align: "center" });
 
-      // Header Right (Account Number)
-      doc.setFontSize(10);
-      doc.text(`*${credit.lead_id}*`, 195, 15, { align: "right" });
-      doc.text(`${credit.lead_id}`, 195, 22, { align: "right" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`REPORTE AL ${date}`, 105, 22, { align: "center" });
 
-      // Customer Info
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${credit.lead_id}`, 14, 35);
-      doc.text(`${credit.client?.name || "CLIENTE DESCONOCIDO"}`, 14, 40);
+    // Header Right (Account Number)
+    doc.setFontSize(10);
+    doc.text(`*${credit.lead_id}*`, 195, 15, { align: "right" });
+    doc.text(`${credit.lead_id}`, 195, 22, { align: "right" });
 
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text("INST./EMPRESA", 100, 35);
-      doc.text(`${credit.client?.ocupacion || "-"}`, 130, 35);
-      doc.text(`${credit.client?.departamento_cargo || "-"}`, 100, 40);
-      doc.text("SECCIÓN", 100, 45);
+    // Customer Info
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${credit.lead_id}`, 14, 35);
+    doc.text(`${credit.client?.name || "CLIENTE DESCONOCIDO"}`, 14, 40);
 
-      // Planes de Ahorros
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 128); // Dark Blue
-      doc.text("Planes de Ahorros", 14, 55);
-      doc.setTextColor(0, 0, 0); // Black
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("INST./EMPRESA", 100, 35);
+    doc.text(`${credit.client?.ocupacion || "-"}`, 130, 35);
+    doc.text(`${credit.client?.departamento_cargo || "-"}`, 100, 40);
+    doc.text("SECCIÓN", 100, 45);
 
-      // Mock Savings Data
-      autoTable(doc, {
-          startY: 60,
-          head: [['N.CON', 'PLAN', 'MENSUALIDAD', 'INICIO', 'REND.CORTE', 'APORTES', 'RENDIMIENTO', 'ACUMULADO']],
-          body: [
-              ['621', 'SOBRANTES POR APLICAR', '0.00', '27/09/2022', '', '0.64', '0.00', '0.64']
-          ],
-          theme: 'plain',
-          styles: { fontSize: 8, cellPadding: 1 },
-          headStyles: { fontStyle: 'bold',  textColor: [0,0,0] },
-          columnStyles: {
-              0: { cellWidth: 15 },
-              1: { cellWidth: 50 },
-          }
-      });
+    // Planes de Ahorros
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 128); // Dark Blue
+    doc.text("Planes de Ahorros", 14, 55);
+    doc.setTextColor(0, 0, 0); // Black
 
-      // Créditos / Otras deducciones
-      let finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 128);
-      doc.text("Créditos / Otras deducciones", 14, finalY);
-      doc.setTextColor(0, 0, 0);
-
-      // Credit Data
-      const creditRow = [
-          credit.numero_operacion || credit.reference,
-          credit.linea || "PEPITO ABIERTO",
-          new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.monto_credito || 0),
-          credit.plazo || 120,
-          (credit.tasa_anual || 33.55) + "%",
-          new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.cuota || 0),
-          new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.saldo || 0),
-          "0.00", // Morosidad
-          credit.primera_deduccion || "01/2022",
-          new Date().toISOString().split('T')[0], // Ult Mov
-          credit.fecha_culminacion_credito || "2032-01-01",
-          credit.status || "NORMAL"
-      ];
-
-      autoTable(doc, {
-          startY: finalY + 5,
-          head: [['OPERACIÓN', 'LINEA', 'MONTO', 'PLAZO', 'TASA', 'CUOTA', 'SALDO', 'MOROSIDAD', 'PRI.DED', 'ULT.MOV', 'TERMINA', 'PROCESO']],
-          body: [creditRow],
-          theme: 'plain',
-          styles: { fontSize: 7, cellPadding: 1 },
-          headStyles: { fontStyle: 'bold', textColor: [0,0,0] },
-      });
-
-      // Fianzas
-      finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 128);
-      doc.text("Fianzas", 14, finalY);
-      doc.setTextColor(0, 0, 0);
-      
-      doc.setLineWidth(0.5);
-      doc.setDrawColor(0, 0, 128);
-      doc.line(14, finalY + 2, 195, finalY + 2);
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("*** NO TIENE FIANZAS ACTIVAS ***", 20, finalY + 10);
-
-      // Plan de Pagos (Detailed Installments)
-      if (credit.payments && credit.payments.length > 0) {
-          finalY = finalY + 20;
-          doc.setFontSize(11);
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(0, 0, 128);
-          doc.text("Plan de Pagos", 14, finalY);
-          doc.setTextColor(0, 0, 0);
-
-          const paymentRows = credit.payments.map(p => [
-              p.numero_cuota,
-              formatDate(p.fecha_cuota),
-              formatDate(p.fecha_pago),
-              new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.cuota),
-              new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.interes_corriente),
-              new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.amortizacion),
-              new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.nuevo_saldo),
-              p.estado
-          ]);
-
-          autoTable(doc, {
-              startY: finalY + 5,
-              head: [['#', 'FECHA CUOTA', 'FECHA PAGO', 'CUOTA', 'INTERÉS', 'AMORTIZACIÓN', 'SALDO', 'ESTADO']],
-              body: paymentRows,
-              theme: 'striped',
-              styles: { fontSize: 7, cellPadding: 1 },
-              headStyles: { fontStyle: 'bold', textColor: [0,0,0], fillColor: [220, 220, 220] },
-          });
+    // Mock Savings Data
+    autoTable(doc, {
+      startY: 60,
+      head: [['N.CON', 'PLAN', 'MENSUALIDAD', 'INICIO', 'REND.CORTE', 'APORTES', 'RENDIMIENTO', 'ACUMULADO']],
+      body: [
+        ['621', 'SOBRANTES POR APLICAR', '0.00', '27/09/2022', '', '0.64', '0.00', '0.64']
+      ],
+      theme: 'plain',
+      styles: { fontSize: 8, cellPadding: 1 },
+      headStyles: { fontStyle: 'bold', textColor: [0, 0, 0] },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 50 },
       }
+    });
 
-      doc.save(`estado_cuenta_${credit.lead_id}.pdf`);
+    // Créditos / Otras deducciones
+    let finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 128);
+    doc.text("Créditos / Otras deducciones", 14, finalY);
+    doc.setTextColor(0, 0, 0);
+
+    // Credit Data
+    const creditRow = [
+      credit.numero_operacion || credit.reference,
+      credit.linea || "PEPITO ABIERTO",
+      new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.monto_credito || 0),
+      credit.plazo || 120,
+      (credit.tasa_anual || 33.55) + "%",
+      new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.cuota || 0),
+      new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.saldo || 0),
+      "0.00", // Morosidad
+      credit.primera_deduccion || "01/2022",
+      new Date().toISOString().split('T')[0], // Ult Mov
+      credit.fecha_culminacion_credito || "2032-01-01",
+      credit.status || "NORMAL"
+    ];
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [['OPERACIÓN', 'LINEA', 'MONTO', 'PLAZO', 'TASA', 'CUOTA', 'SALDO', 'MOROSIDAD', 'PRI.DED', 'ULT.MOV', 'TERMINA', 'PROCESO']],
+      body: [creditRow],
+      theme: 'plain',
+      styles: { fontSize: 7, cellPadding: 1 },
+      headStyles: { fontStyle: 'bold', textColor: [0, 0, 0] },
+    });
+
+    // Fianzas
+    finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 128);
+    doc.text("Fianzas", 14, finalY);
+    doc.setTextColor(0, 0, 0);
+
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(0, 0, 128);
+    doc.line(14, finalY + 2, 195, finalY + 2);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("*** NO TIENE FIANZAS ACTIVAS ***", 20, finalY + 10);
+
+    // Plan de Pagos (Detailed Installments)
+    if (credit.payments && credit.payments.length > 0) {
+      finalY = finalY + 20;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 128);
+      doc.text("Plan de Pagos", 14, finalY);
+      doc.setTextColor(0, 0, 0);
+
+      const paymentRows = credit.payments.map(p => [
+        p.numero_cuota,
+        formatDate(p.fecha_cuota),
+        formatDate(p.fecha_pago),
+        new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.cuota),
+        new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.interes_corriente),
+        new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.amortizacion),
+        new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.nuevo_saldo),
+        p.estado
+      ]);
+
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [['#', 'FECHA CUOTA', 'FECHA PAGO', 'CUOTA', 'INTERÉS', 'AMORTIZACIÓN', 'SALDO', 'ESTADO']],
+        body: paymentRows,
+        theme: 'striped',
+        styles: { fontSize: 7, cellPadding: 1 },
+        headStyles: { fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [220, 220, 220] },
+      });
+    }
+
+    doc.save(`estado_cuenta_${credit.lead_id}.pdf`);
   };
 
   return (
@@ -735,318 +766,364 @@ export default function CreditsPage() {
 
       <Tabs value={tabValue} onValueChange={setTabValue}>
         <TabsList className="flex flex-wrap gap-2">
-            {CREDIT_STATUS_TAB_CONFIG.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="capitalize">
-                    {tab.label}
-                </TabsTrigger>
-            ))}
+          {CREDIT_STATUS_TAB_CONFIG.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="capitalize">
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {CREDIT_STATUS_TAB_CONFIG.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value}>
-                <Card>
-                    <CardContent>
-                        <div 
-                            ref={tableRef}
-                            className={`overflow-x-auto cursor-grab select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                            onMouseDown={handleMouseDown}
-                            style={{ scrollbarWidth: 'thin' }}
-                        >
-                            <Table className="min-w-max">
-                                <TableHeader>
-                                <TableRow>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>Divisa</TableHead>
-                                    <TableHead>No. Operación</TableHead>
-                                    <TableHead>Línea</TableHead>
-                                    <TableHead>1ª Deducción</TableHead>
-                                    <TableHead>Monto</TableHead>
-                                    <TableHead>Saldo</TableHead>
-                                    <TableHead>Cuota</TableHead>
-                                    <TableHead>Garantía</TableHead>
-                                    <TableHead>Vencimiento</TableHead>
-                                    <TableHead>Proceso</TableHead>
-                                    <TableHead>ID Documento</TableHead>
-                                    <TableHead>Tasa</TableHead>
-                                    <TableHead>Plazo</TableHead>
-                                    <TableHead>Cuotas Atrasadas</TableHead>
-                                    <TableHead>Deductora</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                                </TableHeader>
-                        <TableBody>
-                        {getCreditsForTab(tab.value).map((credit) => (
-                            <TableRow key={credit.id}>
-                            <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
-                            <TableCell>{credit.divisa || "CRC"}</TableCell>
-                            <TableCell className="font-medium">{credit.numero_operacion || credit.reference || "-"}</TableCell>
-                            <TableCell>{credit.linea || "-"}</TableCell>
-                            <TableCell>{formatDate(credit.primera_deduccion)}</TableCell>
-                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.monto_credito || 0)}</TableCell>
-                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.saldo || 0)}</TableCell>
-                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.cuota || 0)}</TableCell>
-                            <TableCell>{credit.garantia || "-"}</TableCell>
-                            <TableCell>{formatDate(credit.fecha_culminacion_credito)}</TableCell>
-                            <TableCell>{credit.proceso || "-"}</TableCell>
-                            <TableCell>{credit.documento_id || "-"}</TableCell>
-                            <TableCell>{credit.tasa_anual ? `${credit.tasa_anual}%` : "-"}</TableCell>
-                            <TableCell>{credit.plazo ? `${credit.plazo} meses` : "-"}</TableCell>
-                            <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
-                            <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                    <Button 
-                                        variant="outline" 
-                                        size="icon" 
-                                        asChild
-                                        title="Ver detalle"
-                                        className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
-                                    >
-                                        <Link href={`/dashboard/creditos/${credit.id}`}>
-                                            <Eye className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="icon" 
-                                        onClick={() => { setStatusCredit(credit); setStatusForm({ status: credit.status || "Abierto", progress: String(credit.progress) }); setIsStatusOpen(true); }} 
-                                        title="Actualizar estado"
-                                        className="border-blue-500 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => { setDocumentsCredit(credit); setIsDocumentsOpen(true); }}>
-                                            Gestionar documentos
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/dashboard/creditos/${credit.id}`}>Editar</Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleExportCSV(credit)}>
-                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                            Exportar CSV
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleExportPDF(credit)}>
-                                            <FileText className="mr-2 h-4 w-4" />
-                                            Exportar PDF
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </TableCell>
-                            </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
+          <TabsContent key={tab.value} value={tab.value}>
+            <Card>
+              <CardContent>
+                <div
+                  ref={sliderRef}
+                  className={`overflow-x-auto cursor-grab select-none ${isGrabbing ? 'cursor-grabbing' : ''}`}
+                  onMouseDown={handleMouseDown}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp} // Detener si el mouse sale del área
+                  onMouseMove={handleMouseMove}
+                  style={{ scrollbarWidth: 'thin' }}
+                >
+                  <Table className="min-w-max">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Divisa</TableHead>
+                        <TableHead>No. Operación</TableHead>
+                        <TableHead>Línea</TableHead>
+                        <TableHead>1ª Deducción</TableHead>
+                        <TableHead>Monto</TableHead>
+                        <TableHead>Saldo</TableHead>
+                        <TableHead>Cuota</TableHead>
+                        <TableHead>Garantía</TableHead>
+                        <TableHead>Vencimiento</TableHead>
+                        <TableHead>Proceso</TableHead>
+                        <TableHead>ID Documento</TableHead>
+                        <TableHead>Tasa</TableHead>
+                        <TableHead>Plazo</TableHead>
+                        <TableHead>Cuotas Atrasadas</TableHead>
+                        <TableHead>Deductora</TableHead>
+                        <TableHead>Lead</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getCreditsForTab(tab.value).map((credit) => (
+                        <TableRow key={credit.id}>
+                          <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
+                          <TableCell>{credit.divisa || "CRC"}</TableCell>
+                          <TableCell className="font-medium">{credit.numero_operacion || credit.reference || "-"}</TableCell>
+                          <TableCell>{credit.linea || "-"}</TableCell>
+                          <TableCell>{formatDate(credit.primera_deduccion)}</TableCell>
+                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.monto_credito || 0)}</TableCell>
+                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.saldo || 0)}</TableCell>
+                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.cuota || 0)}</TableCell>
+                          <TableCell>{credit.garantia || "-"}</TableCell>
+                          <TableCell>{formatDate(credit.fecha_culminacion_credito)}</TableCell>
+                          <TableCell>{credit.proceso || "-"}</TableCell>
+                          <TableCell>{credit.documento_id || "-"}</TableCell>
+                          <TableCell>{credit.tasa_anual ? `${credit.tasa_anual}%` : "-"}</TableCell>
+                          <TableCell>{credit.plazo ? `${credit.plazo} meses` : "-"}</TableCell>
+                          <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
+                          <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
+                          <TableCell>{credit.lead?.name || credit.client?.name || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                asChild
+                                title="Ver detalle"
+                                className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Link href={`/dashboard/creditos/${credit.id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => { setStatusCredit(credit); setStatusForm({ status: credit.status || "Abierto" }); setIsStatusOpen(true); }}
+                                title="Actualizar estado"
+                                className="border-blue-500 text-blue-500 hover:bg-blue-50 hover:text-blue-600"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => { setDocumentsCredit(credit); setIsDocumentsOpen(true); }}>
+                                    Gestionar documentos
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/dashboard/creditos/${credit.id}`}>Editar</Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExportCSV(credit)}>
+                                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                    Exportar CSV
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExportPDF(credit)}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Exportar PDF
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         ))}
       </Tabs>
 
       {/* Create/Edit Dialog */}
       <Dialog open={!!dialogState} onOpenChange={(open) => !open && setDialogState(null)}>
         <DialogContent className="max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>{dialogState === 'create' ? 'Nuevo Crédito' : 'Editar Crédito'}</DialogTitle>
-                <DialogDescription>Completa la información del crédito.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label htmlFor="reference">Referencia</Label>
-                        <Input 
-                            id="reference"
-                            placeholder="Ej: CRED-ABC12345"
-                            value={formValues.reference} 
-                            onChange={e => setFormValues({...formValues, reference: e.target.value})} 
-                            required 
-                        />
+          <DialogHeader>
+            <DialogTitle>{dialogState === 'create' ? 'Nuevo Crédito' : 'Editar Crédito'}</DialogTitle>
+            <DialogDescription>Completa la información del crédito.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="reference">Referencia</Label>
+                <Input
+                  id="reference"
+                  placeholder="Ej: CRED-ABC12345"
+                  value={formValues.reference}
+                  onChange={e => setFormValues({ ...formValues, reference: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">Título</Label>
+                <Input
+                  id="title"
+                  placeholder="Crédito Hipotecario..."
+                  value={formValues.title}
+                  onChange={e => setFormValues({ ...formValues, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <Select value={formValues.status} onValueChange={v => setFormValues({ ...formValues, status: v })}>
+                  <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
+                  <SelectContent>
+                    {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría</Label>
+                <Select value={formValues.category} onValueChange={v => setFormValues({ ...formValues, category: v })}>
+                  <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
+                  <SelectContent>
+                    {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="divisa">Divisa</Label>
+                <Select value={formValues.divisa} onValueChange={v => setFormValues({ ...formValues, divisa: v })}>
+                  <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monto">Monto</Label>
+                <Input
+                  id="monto"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formValues.monto_credito}
+                  onChange={e => setFormValues({ ...formValues, monto_credito: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 flex flex-col">
+                <Label htmlFor="lead">Lead</Label>
+                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCombobox}
+                      className="justify-between font-normal w-full"
+                    >
+                      {formValues.leadId
+                        ? leads.find((lead) => String(lead.id) === formValues.leadId)?.name
+                        : "Selecciona un lead..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[400px]" align="start">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Buscar por nombre o cédula..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8"
+                      />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="title">Título</Label>
-                        <Input 
-                            id="title"
-                            placeholder="Crédito Hipotecario..."
-                            value={formValues.title} 
-                            onChange={e => setFormValues({...formValues, title: e.target.value})} 
-                            required 
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="status">Estado</Label>
-                        <Select value={formValues.status} onValueChange={v => setFormValues({...formValues, status: v})}>
-                            <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
-                            <SelectContent>
-                                {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="category">Categoría</Label>
-                        <Select value={formValues.category} onValueChange={v => setFormValues({...formValues, category: v})}>
-                            <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
-                            <SelectContent>
-                                {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="divisa">Divisa</Label>
-                        <Select value={formValues.divisa} onValueChange={v => setFormValues({...formValues, divisa: v})}>
-                            <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
-                            <SelectContent>
-                                {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="progress">Progreso (%)</Label>
-                        <Input 
-                            id="progress"
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={formValues.progress} 
-                            onChange={e => setFormValues({...formValues, progress: e.target.value})} 
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="lead">Lead</Label>
-                        <Select value={formValues.leadId} onValueChange={v => setFormValues({...formValues, leadId: v})}>
-                            <SelectTrigger id="lead"><SelectValue placeholder="Selecciona un lead" /></SelectTrigger>
-                            <SelectContent>
-                                {leads.map(l => <SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="opportunity">Oportunidad (Opcional)</Label>
-                        <Select value={formValues.opportunityId} onValueChange={v => setFormValues({...formValues, opportunityId: v})}>
-                            <SelectTrigger id="opportunity"><SelectValue placeholder="Selecciona una oportunidad" /></SelectTrigger>
-                            <SelectContent>
-                                {availableOpportunities.map(o => (
-                                    <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="assignedTo">Responsable</Label>
-                        <Input 
-                            id="assignedTo"
-                            placeholder="Nombre del responsable"
-                            value={formValues.assignedTo} 
-                            onChange={e => setFormValues({...formValues, assignedTo: e.target.value})} 
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="openedAt">Fecha Apertura</Label>
-                        <Input 
-                            id="openedAt"
-                            type="date" 
-                            value={formValues.openedAt} 
-                            onChange={e => setFormValues({...formValues, openedAt: e.target.value})} 
-                        />
-                    </div>
-                    <div className="sm:col-span-2 space-y-2">
-                        <Label htmlFor="description">Descripción</Label>
-                        <Textarea 
-                            id="description"
-                            className="min-h-[120px]"
-                            placeholder="Describe el contexto del crédito..."
-                            value={formValues.description} 
-                            onChange={e => setFormValues({...formValues, description: e.target.value})} 
-                        />
-                    </div>
-                </div>
-
-                {currentLead ? (
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Información del lead</CardTitle>
-                            <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-sm">
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <span className="font-medium">Nombre:</span> {currentLead.name}
-                                </div>
-                                <div>
-                                    <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
-                                </div>
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      {filteredLeads.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron leads.</div>
+                      ) : (
+                        filteredLeads.map((lead) => (
+                          <div
+                            key={lead.id}
+                            className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${String(lead.id) === formValues.leadId ? "bg-accent text-accent-foreground" : ""}`}
+                            onClick={() => {
+                              setFormValues({ ...formValues, leadId: String(lead.id) });
+                              setOpenCombobox(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${String(lead.id) === formValues.leadId ? "opacity-100" : "opacity-0"
+                                }`}
+                            />
+                            <div className="flex flex-col">
+                              <span>{lead.name}</span>
+                              {lead.cedula && <span className="text-xs text-muted-foreground">{lead.cedula}</span>}
                             </div>
-                        </CardContent>
-                    </Card>
-                ) : null}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="opportunity">Oportunidad (Opcional)</Label>
+                <Select value={formValues.opportunityId} onValueChange={v => setFormValues({ ...formValues, opportunityId: v })}>
+                  <SelectTrigger id="opportunity"><SelectValue placeholder="Selecciona una oportunidad" /></SelectTrigger>
+                  <SelectContent>
+                    {availableOpportunities.map(o => (
+                      <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="assignedTo">Responsable</Label>
+                <Input
+                  id="assignedTo"
+                  placeholder="Nombre del responsable"
+                  value={formValues.assignedTo}
+                  onChange={e => setFormValues({ ...formValues, assignedTo: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="openedAt">Fecha Apertura</Label>
+                <Input
+                  id="openedAt"
+                  type="date"
+                  value={formValues.openedAt}
+                  onChange={e => setFormValues({ ...formValues, openedAt: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  className="min-h-[120px]"
+                  placeholder="Describe el contexto del crédito..."
+                  value={formValues.description}
+                  onChange={e => setFormValues({ ...formValues, description: e.target.value })}
+                />
+              </div>
+            </div>
 
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setDialogState(null)}>Cancelar</Button>
-                    <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
-                </DialogFooter>
-            </form>
+            {currentLead ? (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Información del lead</CardTitle>
+                  <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <span className="font-medium">Nombre:</span> {currentLead.name}
+                    </div>
+                    <div>
+                      <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogState(null)}>Cancelar</Button>
+              <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       {/* Status Dialog */}
       <Dialog open={isStatusOpen} onOpenChange={setIsStatusOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Actualizar Estado</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleStatusUpdate} className="space-y-4">
-                <div className="space-y-2">
-                    <Label>Estado</Label>
-                    <Select value={statusForm.status} onValueChange={v => setStatusForm({...statusForm, status: v})}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Progreso (%)</Label>
-                    <Input type="number" min="0" max="100" value={statusForm.progress} onChange={e => setStatusForm({...statusForm, progress: e.target.value})} />
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsStatusOpen(false)}>Cancelar</Button>
-                    <Button type="submit" disabled={isSaving}>Actualizar</Button>
-                </DialogFooter>
-            </form>
+          <DialogHeader>
+            <DialogTitle>Actualizar Estado</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleStatusUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={statusForm.status} onValueChange={v => setStatusForm({ ...statusForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsStatusOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSaving}>Actualizar</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       {/* Documents Dialog */}
-      <CreditDocumentsDialog 
-        isOpen={isDocumentsOpen} 
-        credit={documentsCredit} 
-        onClose={() => setIsDocumentsOpen(false)} 
+      <CreditDocumentsDialog
+        isOpen={isDocumentsOpen}
+        credit={documentsCredit}
+        onClose={() => setIsDocumentsOpen(false)}
         canDownloadDocuments={canDownloadDocuments}
       />
 
       {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>Detalle del Crédito</DialogTitle>
-            </DialogHeader>
-            {detailCredit && (
-                <div className="grid grid-cols-2 gap-4">
-                    <div><Label className="text-muted-foreground">Referencia</Label><p>{detailCredit.reference}</p></div>
-                    <div><Label className="text-muted-foreground">Título</Label><p>{detailCredit.title}</p></div>
-                    <div><Label className="text-muted-foreground">Estado</Label><p>{detailCredit.status}</p></div>
-                    <div><Label className="text-muted-foreground">Categoría</Label><p>{detailCredit.category}</p></div>
-                    <div><Label className="text-muted-foreground">Lead</Label><p>{detailCredit.client?.name}</p></div>
-                    <div><Label className="text-muted-foreground">Responsable</Label><p>{detailCredit.assigned_to}</p></div>
-                    <div className="col-span-2"><Label className="text-muted-foreground">Descripción</Label><p>{detailCredit.description}</p></div>
-                </div>
-            )}
+          <DialogHeader>
+            <DialogTitle>Detalle del Crédito</DialogTitle>
+          </DialogHeader>
+          {detailCredit && (
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label className="text-muted-foreground">Referencia</Label><p>{detailCredit.reference}</p></div>
+              <div><Label className="text-muted-foreground">Título</Label><p>{detailCredit.title}</p></div>
+              <div><Label className="text-muted-foreground">Estado</Label><p>{detailCredit.status}</p></div>
+              <div><Label className="text-muted-foreground">Categoría</Label><p>{detailCredit.category}</p></div>
+              <div><Label className="text-muted-foreground">Lead</Label><p>{detailCredit.client?.name}</p></div>
+              <div><Label className="text-muted-foreground">Responsable</Label><p>{detailCredit.assigned_to}</p></div>
+              <div className="col-span-2"><Label className="text-muted-foreground">Descripción</Label><p>{detailCredit.description}</p></div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -1054,100 +1131,100 @@ export default function CreditsPage() {
 }
 
 function CreditDocumentsDialog({ isOpen, credit, onClose, canDownloadDocuments }: any) {
-    const { toast } = useToast();
-    const [documents, setDocuments] = useState<CreditDocument[]>([]);
-    const [file, setFile] = useState<File | null>(null);
-    const [name, setName] = useState("");
-    const [notes, setNotes] = useState("");
-    const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+  const [documents, setDocuments] = useState<CreditDocument[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-    const fetchDocuments = useCallback(async () => {
-        if (!credit) return;
-        try {
-            const res = await api.get(`/api/credits/${credit.id}/documents`);
-            setDocuments(res.data);
-        } catch (e) { console.error(e); }
-    }, [credit]);
+  const fetchDocuments = useCallback(async () => {
+    if (!credit) return;
+    try {
+      const res = await api.get(`/api/credits/${credit.id}/documents`);
+      setDocuments(res.data);
+    } catch (e) { console.error(e); }
+  }, [credit]);
 
-    useEffect(() => {
-        if (isOpen) fetchDocuments();
-    }, [isOpen, fetchDocuments]);
+  useEffect(() => {
+    if (isOpen) fetchDocuments();
+  }, [isOpen, fetchDocuments]);
 
-    const handleUpload = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!credit || !file) return;
-        setIsUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("name", name);
-            formData.append("notes", notes);
+  const handleUpload = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!credit || !file) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", name);
+      formData.append("notes", notes);
 
-            await api.post(`/api/credits/${credit.id}/documents`, formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
-            
-            toast({ title: "Documento subido" });
-            setName(""); setNotes(""); setFile(null);
-            fetchDocuments();
-        } catch (e) {
-            toast({ title: "Error", variant: "destructive" });
-        } finally {
-            setIsUploading(false);
-        }
-    };
+      await api.post(`/api/credits/${credit.id}/documents`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
-    const handleDelete = async (docId: number) => {
-        if (!credit) return;
-        try {
-            await api.delete(`/api/credits/${credit.id}/documents/${docId}`);
-            fetchDocuments();
-        } catch (e) { console.error(e); }
-    };
+      toast({ title: "Documento subido" });
+      setName(""); setNotes(""); setFile(null);
+      fetchDocuments();
+    } catch (e) {
+      toast({ title: "Error", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-    return (
-        <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader><DialogTitle>Documentos</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                    <form onSubmit={handleUpload} className="space-y-4 border p-4 rounded">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Nombre</Label>
-                                <Input value={name} onChange={e => setName(e.target.value)} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Archivo</Label>
-                                <Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} required />
-                            </div>
-                            <div className="col-span-2 space-y-2">
-                                <Label>Notas</Label>
-                                <Input value={notes} onChange={e => setNotes(e.target.value)} />
-                            </div>
-                        </div>
-                        <Button type="submit" disabled={isUploading}>{isUploading ? "Subiendo..." : "Subir Documento"}</Button>
-                    </form>
+  const handleDelete = async (docId: number) => {
+    if (!credit) return;
+    try {
+      await api.delete(`/api/credits/${credit.id}/documents/${docId}`);
+      fetchDocuments();
+    } catch (e) { console.error(e); }
+  };
 
-                    <Table>
-                        <TableHeader>
-                            <TableRow><TableHead>Nombre</TableHead><TableHead>Notas</TableHead><TableHead>Acciones</TableHead></TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {documents.map(doc => (
-                                <TableRow key={doc.id}>
-                                    <TableCell>
-                                        {doc.url ? <a href={doc.url} target="_blank" className="text-primary hover:underline">{doc.name}</a> : doc.name}
-                                    </TableCell>
-                                    <TableCell>{doc.notes}</TableCell>
-                                    <TableCell>
-                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id)} className="text-destructive">Eliminar</Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+  return (
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Documentos</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <form onSubmit={handleUpload} className="space-y-4 border p-4 rounded">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Archivo</Label>
+                <Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} required />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Notas</Label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+            </div>
+            <Button type="submit" disabled={isUploading}>{isUploading ? "Subiendo..." : "Subir Documento"}</Button>
+          </form>
+
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Nombre</TableHead><TableHead>Notas</TableHead><TableHead>Acciones</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map(doc => (
+                <TableRow key={doc.id}>
+                  <TableCell>
+                    {doc.url ? <a href={doc.url} target="_blank" className="text-primary hover:underline">{doc.name}</a> : doc.name}
+                  </TableCell>
+                  <TableCell>{doc.notes}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id)} className="text-destructive">Eliminar</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
