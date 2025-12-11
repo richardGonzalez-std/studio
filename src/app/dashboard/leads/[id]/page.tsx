@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, User as UserIcon, Save, Loader2, PanelRightClose, PanelRightOpen, Pencil, Sparkles, UserCheck, Archive, Plus } from "lucide-react";
@@ -21,7 +21,7 @@ import { CreateOpportunityDialog } from "@/components/opportunities/create-oppor
 
 import api from "@/lib/axios";
 import { Lead } from "@/lib/data";
-import { PROVINCES } from "@/lib/cr-locations";
+import { COSTA_RICA_PROVINCES, getProvinceOptions, getCantonOptions, getDistrictOptions } from '@/lib/costa-rica-regions';
 
 export default function LeadDetailPage() {
     const params = useParams();
@@ -86,18 +86,45 @@ export default function LeadDetailPage() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const selectedProvince = React.useMemo(() => 
-        PROVINCES.find(p => p.name === formData.province), 
-        [formData.province]
-    );
+    // --- Provincias / Cantones / Distritos (dirección principal)
+    const provinceOptions = useMemo(() => getProvinceOptions(), []);
 
-    const selectedCanton = React.useMemo(() => 
-        selectedProvince?.cantons.find(c => c.name === formData.canton), 
-        [selectedProvince, formData.canton]
-    );
+    const cantonOptions = useMemo(() => {
+        const options = getCantonOptions(formData.province ?? "");
+        if (formData.canton && !options.some(o => o.value === formData.canton)) {
+            return [{ value: formData.canton, label: formData.canton }, ...options];
+        }
+        return options;
+    }, [formData.province, formData.canton]);
 
-    const cantons = selectedProvince?.cantons || [];
-    const districts = selectedCanton?.districts || [];
+    const districtOptions = useMemo(() => {
+        const options = getDistrictOptions(formData.province ?? "", formData.canton ?? "");
+        if (formData.distrito && !options.some(o => o.value === formData.distrito)) {
+            return [{ value: formData.distrito, label: formData.distrito }, ...options];
+        }
+        return options;
+    }, [formData.province, formData.canton, formData.distrito]);
+
+    // --- Provincias / Cantones / Distritos (dirección trabajo)
+    const workProvinceOptions = useMemo(() => getProvinceOptions(), []);
+
+    const workCantonOptions = useMemo(() => {
+        const options = getCantonOptions((formData as any).trabajo_provincia ?? "");
+        const current = (formData as any).trabajo_canton;
+        if (current && !options.some(o => o.value === current)) {
+            return [{ value: current, label: current }, ...options];
+        }
+        return options;
+    }, [(formData as any).trabajo_provincia, (formData as any).trabajo_canton]);
+
+    const workDistrictOptions = useMemo(() => {
+        const options = getDistrictOptions((formData as any).trabajo_provincia ?? "", (formData as any).trabajo_canton ?? "");
+        const current = (formData as any).trabajo_distrito;
+        if (current && !options.some(o => o.value === current)) {
+            return [{ value: current, label: current }, ...options];
+        }
+        return options;
+    }, [(formData as any).trabajo_provincia, (formData as any).trabajo_canton, (formData as any).trabajo_distrito]);
 
     const handleProvinceChange = (value: string) => {
         setFormData(prev => ({ 
@@ -121,19 +148,6 @@ export default function LeadDetailPage() {
     };
 
     // Work Address Logic
-    const selectedWorkProvince = React.useMemo(() => 
-        PROVINCES.find(p => p.name === formData.trabajo_provincia), 
-        [formData.trabajo_provincia]
-    );
-
-    const selectedWorkCanton = React.useMemo(() => 
-        selectedWorkProvince?.cantons.find(c => c.name === formData.trabajo_canton), 
-        [selectedWorkProvince, formData.trabajo_canton]
-    );
-
-    const workCantons = selectedWorkProvince?.cantons || [];
-    const workDistricts = selectedWorkCanton?.districts || [];
-
     const handleWorkProvinceChange = (value: string) => {
         setFormData(prev => ({ 
             ...prev, 
@@ -474,9 +488,9 @@ export default function LeadDetailPage() {
                                                     <SelectValue placeholder="Seleccionar provincia" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {PROVINCES.map((p) => (
-                                                        <SelectItem key={p.id} value={p.name}>
-                                                            {p.name}
+                                                    {provinceOptions.map((p) => (
+                                                        <SelectItem key={p.value} value={p.value}>
+                                                            {p.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -491,46 +505,47 @@ export default function LeadDetailPage() {
                                             <Select 
                                                 value={(formData as any).canton || ""} 
                                                 onValueChange={handleCantonChange}
-                                                disabled={!selectedProvince}
+                                                disabled={!formData?.province}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Seleccionar cantón" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {cantons.map((c) => (
-                                                        <SelectItem key={c.id} value={c.name}>
-                                                            {c.name}
+                                                    {cantonOptions.map((c) => (
+                                                        <SelectItem key={c.value} value={c.value}>
+                                                            {c.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        ) : (
-                                            <Input value={(formData as any).canton || ""} disabled />
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Distrito</Label>
-                                        {isEditMode ? (
-                                            <Select 
+                                         ) : (
+                                             <Input value={(formData as any).canton || ""} disabled />
+                                         )}
+                                     </div>
+                                     <div className="space-y-2">
+                                         <Label>Distrito</Label>
+                                         {isEditMode ? (
+                                            <Select
                                                 value={(formData as any).distrito || ""} 
                                                 onValueChange={handleDistrictChange}
-                                                disabled={!selectedCanton}
+                                                disabled={!formData?.canton}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Seleccionar distrito" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {districts.map((d) => (
-                                                        <SelectItem key={d.id} value={d.name}>
-                                                            {d.name}
+                                                    {districtOptions.map((d) => (
+                                                        <SelectItem key={d.value} value={d.value}>
+                                                            {d.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        ) : (
-                                            <Input value={(formData as any).distrito || ""} disabled />
-                                        )}
-                                    </div>
+                                         ) : (
+                                             <Input value={(formData as any).distrito || ""} disabled />
+                                         )}
+                                     </div>
+
                                     <div className="col-span-3 md:col-span-2 space-y-2">
                                         <Label>Dirección Exacta</Label>
                                         <Textarea
@@ -662,9 +677,9 @@ export default function LeadDetailPage() {
                                                     <SelectValue placeholder="Seleccionar provincia" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {PROVINCES.map((p) => (
-                                                        <SelectItem key={p.id} value={p.name}>
-                                                            {p.name}
+                                                    {workProvinceOptions.map((p) => (
+                                                        <SelectItem key={p.value} value={p.value}>
+                                                            {p.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -673,60 +688,60 @@ export default function LeadDetailPage() {
                                             <Input value={(formData as any).trabajo_provincia || ""} disabled />
                                         )}
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Cantón</Label>
-                                        {isEditMode ? (
-                                            <Select 
+                                     <div className="space-y-2">
+                                         <Label>Cantón</Label>
+                                         {isEditMode ? (
+                                            <Select
                                                 value={(formData as any).trabajo_canton || ""} 
                                                 onValueChange={handleWorkCantonChange}
-                                                disabled={!selectedWorkProvince}
+                                                disabled={!((formData as any).trabajo_provincia)}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Seleccionar cantón" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {workCantons.map((c) => (
-                                                        <SelectItem key={c.id} value={c.name}>
-                                                            {c.name}
+                                                    {workCantonOptions.map((c) => (
+                                                        <SelectItem key={c.value} value={c.value}>
+                                                            {c.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        ) : (
-                                            <Input value={(formData as any).trabajo_canton || ""} disabled />
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Distrito</Label>
-                                        {isEditMode ? (
-                                            <Select 
+                                         ) : (
+                                             <Input value={(formData as any).trabajo_canton || ""} disabled />
+                                         )}
+                                     </div>
+                                     <div className="space-y-2">
+                                         <Label>Distrito</Label>
+                                         {isEditMode ? (
+                                            <Select
                                                 value={(formData as any).trabajo_distrito || ""} 
                                                 onValueChange={handleWorkDistrictChange}
-                                                disabled={!selectedWorkCanton}
+                                                disabled={!((formData as any).trabajo_canton)}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Seleccionar distrito" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {workDistricts.map((d) => (
-                                                        <SelectItem key={d.id} value={d.name}>
-                                                            {d.name}
+                                                    {workDistrictOptions.map((d) => (
+                                                        <SelectItem key={d.value} value={d.value}>
+                                                            {d.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        ) : (
-                                            <Input value={(formData as any).trabajo_distrito || ""} disabled />
-                                        )}
-                                    </div>
+                                         ) : (
+                                             <Input value={(formData as any).trabajo_distrito || ""} disabled />
+                                         )}
+                                     </div>
                                     <div className="col-span-3 space-y-2">
-                                        <Label>Dirección Exacta (Trabajo)</Label>
-                                        <Textarea 
-                                            value={(formData as any).trabajo_direccion || ""} 
-                                            onChange={(e) => handleInputChange("trabajo_direccion" as keyof Lead, e.target.value)} 
-                                            disabled={!isEditMode} 
-                                        />
-                                    </div>
+                                         <Label>Dirección Exacta (Trabajo)</Label>
+                                         <Textarea
+                                             value={(formData as any).trabajo_direccion || ""}
+                                             onChange={(e) => handleInputChange("trabajo_direccion" as keyof Lead, e.target.value)}
+                                             disabled={!isEditMode}
+                                         />
+                                     </div>
 
                                     {/* Economic Activity */}
                                     <div className="col-span-3">
