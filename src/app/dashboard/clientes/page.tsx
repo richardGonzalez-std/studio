@@ -17,9 +17,8 @@ import {
   PlusCircle,
   Sparkles,
   UserCheck,
-  MoreHorizontal,
   Loader2,
-  X
+  Trash
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -35,7 +34,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -1041,21 +1040,24 @@ function ClientsTable({ data, onEdit, onDelete }: { data: Client[], onEdit: (cli
                         <Badge className={badgeClassName}>{statusLabel}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
+                      <div className="flex flex-wrap justify-end gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
+                            <Button size="icon" className="bg-sky-100 text-sky-700 hover:bg-sky-200" onClick={() => onEdit(client)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Más acciones</TooltipContent>
+                          <TooltipContent>Editar</TooltipContent>
                         </Tooltip>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => onEdit(client)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onDelete(client)} className="text-destructive">Eliminar</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="destructive" onClick={() => onDelete(client)}>
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar</TooltipContent>
+                        </Tooltip>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
