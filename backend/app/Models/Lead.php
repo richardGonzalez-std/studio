@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
-class Lead extends Model
+class Lead extends Person
 {
     use HasFactory;
 
     // Apunta a la tabla maestra
-    protected $table = 'persons';
+    // protected $table = 'persons'; // Inherited from Person
 
     protected $fillable = [
         'name',

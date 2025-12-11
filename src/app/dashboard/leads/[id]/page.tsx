@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, User as UserIcon, Save, Loader2, PanelRightClose, PanelRightOpen, Pencil, Sparkles, UserCheck, Archive, Plus } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Save, Loader2, PanelRightClose, PanelRightOpen, Pencil, Sparkles, UserCheck, Archive, Plus, Paperclip } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { CaseChat } from "@/components/case-chat";
 import { CreateOpportunityDialog } from "@/components/opportunities/create-opportunity-dialog";
+import { DocumentManager } from "@/components/document-manager";
 
 import api from "@/lib/axios";
 import { Lead } from "@/lib/data";
@@ -241,8 +243,15 @@ export default function LeadDetailPage() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
                 <div className={isPanelVisible ? 'space-y-6 lg:col-span-3' : 'space-y-6 lg:col-span-5'}>
-                    <Card>
-                        <div className="p-6 pb-0">
+                    <Tabs defaultValue="datos" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-4">
+                            <TabsTrigger value="datos">Datos</TabsTrigger>
+                            <TabsTrigger value="archivos">Archivos</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="datos">
+                            <Card>
+                                <div className="p-6 pb-0">
                             <h1 className="text-2xl font-bold tracking-tight uppercase">{lead.name} {lead.apellido1}</h1>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                 <span>ID #{lead.id}</span>
@@ -850,6 +859,25 @@ export default function LeadDetailPage() {
 
                         </CardContent>
                     </Card>
+                        </TabsContent>
+
+                        <TabsContent value="archivos">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Paperclip className="h-5 w-5" />
+                                        Archivos del Lead
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <DocumentManager 
+                                        personId={lead.id} 
+                                        initialDocuments={(lead as any).documents || []} 
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
 
                 {/* Side Panel */}

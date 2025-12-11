@@ -114,7 +114,7 @@ class ClientController extends Controller
 
     public function show(string $id)
     {
-        $client = Client::with('assignedAgent')->findOrFail($id);
+        $client = Client::with(['assignedAgent', 'documents'])->findOrFail($id);
         return response()->json($client, 200);
     }
 

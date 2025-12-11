@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
-class Client extends Model
+class Client extends Person
 {
     use HasFactory;
 
-    protected $table = 'persons';
+    // protected $table = 'persons'; // Inherited from Person
 
     protected $fillable = [
         'name',

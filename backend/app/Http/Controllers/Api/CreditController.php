@@ -58,7 +58,7 @@ class CreditController extends Controller
 
     public function show($id)
     {
-        $credit = Credit::with(['lead', 'opportunity', 'documents', 'payments', 'planDePagos'])->findOrFail($id);
+        $credit = Credit::with(['lead.documents', 'opportunity', 'documents', 'payments', 'planDePagos'])->findOrFail($id);
 
         // Calculate current balance if not stored
         $lastPayment = $credit->payments()->where('estado', 'Pagado')->orderBy('numero_cuota', 'desc')->first();

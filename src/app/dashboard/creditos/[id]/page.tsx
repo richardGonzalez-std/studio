@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/table';
 import api from '@/lib/axios';
 import { CaseChat } from '@/components/case-chat';
+import { DocumentManager } from '@/components/document-manager';
 
 // Interfaces
 interface CreditDocument {
@@ -148,6 +150,11 @@ interface CreditItem {
   opened_at: string | null;
   description: string | null;
   lead_id: number;
+  lead?: {
+    id: number;
+    name: string;
+    documents?: CreditDocument[];
+  } | null;
   opportunity_id: string | null;
   client?: ClientOption | null;
   opportunity?: { id: string; title: string | null } | null;
@@ -347,36 +354,14 @@ function CreditDetailClient({ id }: { id: string }) {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Paperclip className="h-5 w-5" />
-                        Archivos del Crédito
+                        Archivos del Crédito (Compartidos con Cliente)
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-3">
-                        {credit.documents?.map((file) => (
-                          <li
-                            key={file.id}
-                            className="flex items-center justify-between rounded-md border p-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-6 w-6 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium">{file.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatDate(file.created_at)}
-                                </p>
-                              </div>
-                            </div>
-                            {file.url && (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a href={file.url} target="_blank" rel="noopener noreferrer">Descargar</a>
-                                </Button>
-                            )}
-                          </li>
-                        ))}
-                        {(!credit.documents || credit.documents.length === 0) && (
-                            <li className="text-sm text-muted-foreground text-center py-2">No hay documentos adjuntos.</li>
-                        )}
-                      </ul>
+                      <DocumentManager 
+                        personId={credit.lead_id}
+                        initialDocuments={credit.lead?.documents || []}
+                      />
                     </CardContent>
                   </Card>
                 </div>

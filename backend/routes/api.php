@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\OpportunityController;
+use App\Http\Controllers\Api\PersonDocumentController;
 
 // Rewards Controllers
 use App\Http\Controllers\Api\Rewards\RewardController;
@@ -62,6 +63,10 @@ Route::delete('credits/{id}/documents/{documentId}', [\App\Http\Controllers\Api\
 
 // Deductoras
 Route::apiResource('deductoras', \App\Http\Controllers\Api\DeductoraController::class);
+
+// Documentos de Personas (Leads/Clientes)
+Route::post('/person-documents', [PersonDocumentController::class, 'store']);
+Route::delete('/person-documents/{id}', [PersonDocumentController::class, 'destroy']);
 
 // Pagos de Crédito
 Route::apiResource('credit-payments', \App\Http\Controllers\Api\CreditPaymentController::class);

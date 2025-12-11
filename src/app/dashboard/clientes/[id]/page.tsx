@@ -20,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { CaseChat } from "@/components/case-chat";
 import { CreateOpportunityDialog } from "@/components/opportunities/create-opportunity-dialog";
+import { DocumentManager } from "@/components/document-manager";
 
 import api from "@/lib/axios";
 import { Client, chatMessages, Lead } from "@/lib/data";
@@ -248,8 +249,15 @@ export default function ClientDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className={isPanelVisible ? 'space-y-6 lg:col-span-3' : 'space-y-6 lg:col-span-5'}>
-          <Card>
-            <div className="p-6 pb-0">
+          <Tabs defaultValue="datos" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="datos">Datos</TabsTrigger>
+              <TabsTrigger value="archivos">Archivos</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="datos">
+              <Card>
+                <div className="p-6 pb-0">
                 <h1 className="text-2xl font-bold tracking-tight uppercase">{client.name} {(client as any).apellido1} {(client as any).apellido2}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <span>ID #{client.id}</span>
@@ -882,6 +890,25 @@ export default function ClientDetailPage() {
 
         </CardContent>
       </Card>
+            </TabsContent>
+
+            <TabsContent value="archivos">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Paperclip className="h-5 w-5" />
+                    Archivos del Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                   <DocumentManager 
+                      personId={client.id} 
+                      initialDocuments={(client as any).documents || []} 
+                   />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Side Panel */}
@@ -890,10 +917,9 @@ export default function ClientDetailPage() {
             <Card className="flex-1 flex flex-col overflow-hidden border-0 shadow-none lg:border lg:shadow-sm">
               <Tabs defaultValue="comunicaciones" className="flex flex-col h-full">
                 <div className="px-4 pt-4 border-b">
-                  <TabsList className="grid w-full grid-cols-3 mb-4">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
                     <TabsTrigger value="comunicaciones">Comunicaciones</TabsTrigger>
-                    <TabsTrigger value="archivos">Archivos</TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -1012,12 +1038,6 @@ export default function ClientDetailPage() {
                               </Button>
                           </div>
                       </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="archivos" className="flex-1 p-4 m-0 overflow-y-auto">
-                   <div className="text-center text-muted-foreground py-8">
-                    No hay archivos adjuntos.
                   </div>
                 </TabsContent>
               </Tabs>
