@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent, FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MoreHorizontal, PlusCircle, Eye, RefreshCw, Pencil, FileText, FileSpreadsheet, Download, Check, ChevronsUpDown } from "lucide-react";
@@ -189,6 +189,7 @@ interface CreditFormValues {
   openedAt: string;
   description: string;
   divisa: string;
+  plazo: string;
 }
 
 const CREDIT_STATUS_OPTIONS = [
@@ -263,6 +264,12 @@ export default function CreditsPage() {
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(true);
   const [tabValue, setTabValue] = useState("all");
+  const [filters, setFilters] = useState({
+    monto: "",
+    numeroOperacion: "",
+    leadName: "",
+    documentoId: ""
+  });
 
   // Combobox state
   const [openCombobox, setOpenCombobox] = useState(false);
@@ -282,6 +289,7 @@ export default function CreditsPage() {
     openedAt: "",
     description: "",
     divisa: "CRC",
+    plazo: "36",
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -319,52 +327,6 @@ export default function CreditsPage() {
       return belongsToLead && (canSelectExistingCredit || isFree);
     });
   }, [opportunities, formValues.leadId, dialogCredit]);
-
-// --- Drag Scroll Logic Corregida ---
-  
-  // 1. Usamos useRef para valores que cambian rápido (física)
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const isDown = useRef(false); // Reemplaza isDragging para la lógica
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-
-  // 2. Usamos useState SOLO para cambiar el cursor visualmente
-  const [isGrabbing, setIsGrabbing] = useState(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!sliderRef.current) return;
-    e.preventDefault();
-    
-    // Guardamos estado en Refs (Instantáneo)
-    isDown.current = true;
-    startX.current = e.pageX - sliderRef.current.offsetLeft;
-    scrollLeft.current = sliderRef.current.scrollLeft;
-    
-    // Actualizamos UI
-    setIsGrabbing(true);
-  };
-
-  const handleMouseLeave = () => {
-    isDown.current = false;
-    setIsGrabbing(false);
-  };
-
-  const handleMouseUp = () => {
-    isDown.current = false;
-    setIsGrabbing(false);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    // Si no está presionado, no hacemos nada
-    if (!isDown.current || !sliderRef.current) return;
-    
-    e.preventDefault();
-    
-    // Cálculo matemático usando los Refs (Valores siempre frescos)
-    const x = e.pageX - sliderRef.current.offsetLeft;
-    const walk = (x - startX.current) * 2; // Velocidad del scroll
-    sliderRef.current.scrollLeft = scrollLeft.current - walk;
-  };
 
   // Mock permission for now
   const canDownloadDocuments = true;
@@ -456,22 +418,44 @@ export default function CreditsPage() {
 
   const getCreditsForTab = useCallback(
     (value: string): CreditItem[] => {
-      if (value === "all") {
-        return credits;
-      }
+      let filtered = credits;
+
+      // 1. Tab Filter
       if (value === "otros") {
-        return credits.filter((item) => {
+        filtered = credits.filter((item) => {
           const normalized = normalizeStatus(item.status);
           return normalized.length > 0 && !TRACKED_STATUS_SET.has(normalized);
         });
+      } else if (value !== "all") {
+        const statuses = TAB_STATUS_FILTERS[value];
+        if (statuses) {
+          filtered = credits.filter((item) => statuses.includes(normalizeStatus(item.status)));
+        }
       }
-      const statuses = TAB_STATUS_FILTERS[value];
-      if (!statuses) {
-        return credits;
+
+      // 2. Advanced Filters
+      if (filters.monto) {
+        filtered = filtered.filter(c => c.monto_credito?.toString().includes(filters.monto));
       }
-      return credits.filter((item) => statuses.includes(normalizeStatus(item.status)));
+      if (filters.numeroOperacion) {
+        filtered = filtered.filter(c => 
+          (c.numero_operacion?.toLowerCase().includes(filters.numeroOperacion.toLowerCase())) ||
+          (c.reference?.toLowerCase().includes(filters.numeroOperacion.toLowerCase()))
+        );
+      }
+      if (filters.leadName) {
+        filtered = filtered.filter(c => 
+          (c.lead?.name?.toLowerCase().includes(filters.leadName.toLowerCase())) ||
+          (c.client?.name?.toLowerCase().includes(filters.leadName.toLowerCase()))
+        );
+      }
+      if (filters.documentoId) {
+         filtered = filtered.filter(c => c.documento_id?.toLowerCase().includes(filters.documentoId.toLowerCase()));
+      }
+
+      return filtered;
     },
-    [credits]
+    [credits, filters]
   );
 
   const handleCreate = () => {
@@ -487,6 +471,7 @@ export default function CreditsPage() {
       openedAt: new Date().toISOString().split('T')[0],
       description: "",
       divisa: "CRC",
+      plazo: "36",
     });
     setDialogCredit(null);
     setDialogState("create");
@@ -505,6 +490,7 @@ export default function CreditsPage() {
       openedAt: credit.opened_at ? credit.opened_at.split('T')[0] : "",
       description: credit.description || "",
       divisa: credit.divisa || "CRC",
+      plazo: credit.plazo ? String(credit.plazo) : "36",
     });
     setDialogCredit(credit);
     setDialogState("edit");
@@ -526,6 +512,7 @@ export default function CreditsPage() {
         opened_at: formValues.openedAt,
         description: formValues.description,
         divisa: formValues.divisa,
+        plazo: parseInt(formValues.plazo) || 36,
       };
 
       if (dialogState === "create") {
@@ -758,10 +745,80 @@ export default function CreditsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Créditos</h2>
           <p className="text-muted-foreground">Gestiona los créditos y sus documentos.</p>
         </div>
-        <Button onClick={handleCreate}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nuevo Crédito
-        </Button>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Filtros
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Filtros</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Filtra los créditos por los siguientes criterios.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="filter-monto">Monto</Label>
+                    <Input
+                      id="filter-monto"
+                      className="col-span-2 h-8"
+                      value={filters.monto}
+                      onChange={(e) => setFilters({ ...filters, monto: e.target.value })}
+                      placeholder="Ej: 100000"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="filter-op">No. Op.</Label>
+                    <Input
+                      id="filter-op"
+                      className="col-span-2 h-8"
+                      value={filters.numeroOperacion}
+                      onChange={(e) => setFilters({ ...filters, numeroOperacion: e.target.value })}
+                      placeholder="Ej: CRED-123"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="filter-lead">Lead</Label>
+                    <Input
+                      id="filter-lead"
+                      className="col-span-2 h-8"
+                      value={filters.leadName}
+                      onChange={(e) => setFilters({ ...filters, leadName: e.target.value })}
+                      placeholder="Nombre del cliente"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="filter-doc">No. Doc.</Label>
+                    <Input
+                      id="filter-doc"
+                      className="col-span-2 h-8"
+                      value={filters.documentoId}
+                      onChange={(e) => setFilters({ ...filters, documentoId: e.target.value })}
+                      placeholder="ID Documento"
+                    />
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setFilters({ monto: "", numeroOperacion: "", leadName: "", documentoId: "" })}
+                    className="mt-2"
+                  >
+                    Limpiar Filtros
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button onClick={handleCreate}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nuevo Crédito
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tabValue} onValueChange={setTabValue}>
@@ -777,15 +834,7 @@ export default function CreditsPage() {
           <TabsContent key={tab.value} value={tab.value}>
             <Card>
               <CardContent>
-                <div
-                  ref={sliderRef}
-                  className={`overflow-x-auto cursor-grab select-none ${isGrabbing ? 'cursor-grabbing' : ''}`}
-                  onMouseDown={handleMouseDown}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp} // Detener si el mouse sale del área
-                  onMouseMove={handleMouseMove}
-                  style={{ scrollbarWidth: 'thin' }}
-                >
+                <DraggableScrollContainer className="overflow-x-auto select-none">
                   <Table className="min-w-max">
                     <TableHeader>
                       <TableRow>
@@ -889,7 +938,7 @@ export default function CreditsPage() {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                </DraggableScrollContainer>
               </CardContent>
             </Card>
           </TabsContent>
@@ -963,6 +1012,17 @@ export default function CreditsPage() {
                   value={formValues.monto_credito}
                   onChange={e => setFormValues({ ...formValues, monto_credito: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plazo">Plazo (Meses)</Label>
+                <Select value={formValues.plazo} onValueChange={v => setFormValues({ ...formValues, plazo: v })}>
+                  <SelectTrigger id="plazo"><SelectValue placeholder="Selecciona el plazo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="36">36 meses</SelectItem>
+                    <SelectItem value="60">60 meses</SelectItem>
+                    <SelectItem value="120">120 meses</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 flex flex-col">
                 <Label htmlFor="lead">Lead</Label>
@@ -1236,5 +1296,75 @@ function CreditDocumentsDialog({ isOpen, credit, onClose, canDownloadDocuments }
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DraggableScrollContainer({ children, className }: { children: React.ReactNode, className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const slider = ref.current;
+    if (!slider) return;
+
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDown = true;
+      slider.classList.add("active");
+      slider.style.cursor = "grabbing";
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    };
+
+    const onMouseLeave = () => {
+      isDown = false;
+      slider.classList.remove("active");
+      slider.style.cursor = "grab";
+    };
+
+    const onMouseUp = () => {
+      isDown = false;
+      slider.classList.remove("active");
+      slider.style.cursor = "grab";
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 2; // Scroll-fast
+      slider.scrollLeft = scrollLeft - walk;
+    };
+
+    // Add listeners to window for mouseup/leave to handle dragging outside the container
+    slider.addEventListener("mousedown", onMouseDown);
+    slider.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    
+    // We still keep mouseleave on slider or window? 
+    // If we drag outside, we want to keep dragging usually, but let's stick to the requested logic first.
+    // The requested logic had mouseleave on slider.
+    slider.addEventListener("mouseleave", onMouseLeave);
+    slider.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      slider.removeEventListener("mousedown", onMouseDown);
+      slider.removeEventListener("mousemove", onMouseMove);
+      slider.removeEventListener("mouseleave", onMouseLeave);
+      slider.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{ scrollbarWidth: 'thin', cursor: 'grab' }}
+    >
+      {children}
+    </div>
   );
 }

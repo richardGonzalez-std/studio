@@ -90,6 +90,43 @@ interface CreditPayment {
   dias_mora?: number | null;
 }
 
+interface PlanDePago {
+  id: number;
+  credit_id: number;
+  linea: string | null;
+  numero_cuota: number;
+  proceso: string | null;
+  fecha_inicio: string | null;
+  fecha_corte: string | null;
+  fecha_pago: string | null;
+  tasa_actual: number;
+  plazo_actual: number;
+  cuota: number;
+  cargos: number;
+  poliza: number;
+  interes_corriente: number;
+  interes_moratorio: number;
+  amortizacion: number;
+  saldo_anterior: number;
+  saldo_nuevo: number;
+  dias: number;
+  estado: string | null;
+  dias_mora: number;
+  fecha_movimiento: string | null;
+  movimiento_total: number;
+  movimiento_cargos: number;
+  movimiento_poliza: number;
+  movimiento_interes_corriente: number;
+  movimiento_interes_moratorio: number;
+  movimiento_principal: number;
+  movimiento_caja_usuario: string | null;
+  tipo_documento: string | null;
+  numero_documento: string | null;
+  concepto: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface ClientOption {
   id: number;
   name: string;
@@ -118,6 +155,7 @@ interface CreditItem {
   updated_at?: string | null;
   documents?: CreditDocument[];
   payments?: CreditPayment[];
+  plan_de_pagos?: PlanDePago[];
   tipo_credito?: string | null;
   numero_operacion?: string | null;
   monto_credito?: number | null;
@@ -210,234 +248,269 @@ function CreditDetailClient({ id }: { id: string }) {
               Balance General
             </Link>
           </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsPanelVisible(!isPanelVisible)}
-                >
-                  {isPanelVisible ? (
-                    <PanelRightClose className="h-4 w-4" />
-                  ) : (
-                    <PanelRightOpen className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">Toggle Panel</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isPanelVisible ? 'Ocultar Panel' : 'Mostrar Panel'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <div className={isPanelVisible ? 'space-y-6 lg:col-span-3' : 'space-y-6 lg:col-span-5'}>
-          {/* Main Info Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>
-                    <Link href={`/dashboard/clientes/${credit.lead_id}`} className="hover:underline">
-                      {credit.client?.name || "Cliente Desconocido"}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription>
-                    Institución: {credit.client?.ocupacion || "-"}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={credit.status === 'Activo' ? 'default' : 'secondary'}>
-                    {credit.status}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              <div className="grid gap-1">
-                <h3 className="font-medium">Monto Otorgado</h3>
-                <p className="text-muted-foreground">
-                  ₡{formatCurrency(credit.monto_credito)}
-                </p>
-              </div>
-              <div className="grid gap-1">
-                <h3 className="font-medium">Saldo Actual</h3>
-                <p className="font-semibold text-primary">
-                  ₡{formatCurrency(credit.saldo)}
-                </p>
-              </div>
-              <div className="grid gap-1">
-                <h3 className="font-medium">Cuota Mensual</h3>
-                <p className="text-muted-foreground">
-                  ₡{formatCurrency(credit.cuota)}
-                </p>
-              </div>
-              <div className="grid gap-1">
-                <h3 className="font-medium">Tasa / Plazo</h3>
-                <p className="text-muted-foreground">
-                  {credit.tasa_anual}% / {credit.plazo} meses
-                </p>
-              </div>
-              <div className="grid gap-1">
-                <h3 className="font-medium">Cuotas Atrasadas</h3>
-                <p className="font-semibold text-destructive">
-                  {credit.cuotas_atrasadas || 0}
-                </p>
-              </div>
-              <div className="grid gap-1">
-                <h3 className="font-medium">Entidad Deductora</h3>
-                <p className="text-muted-foreground">{credit.deductora?.nombre || "-"}</p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        <div className="space-y-6">
+          <Tabs defaultValue="credito" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="credito">Crédito</TabsTrigger>
+              <TabsTrigger value="plan-pagos">Plan de Pagos</TabsTrigger>
+            </TabsList>
 
-          {/* Plan de Pagos Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan de Pagos</CardTitle>
-              <CardDescription>Detalle de cuotas y movimientos</CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="whitespace-nowrap text-xs">Línea</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">No. Cuota</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Proceso</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Fecha Inicio</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Fecha Corte</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Fecha Pago</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Tasa Actual</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Plazo Actual</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Cuota</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Cargos</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Póliza</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Int. Corriente</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Int. Moratorio</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Amortización</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Saldo Anterior</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs text-right">Saldo Nuevo</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Días</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Estado</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Mora (Días)</TableHead>
-                    <TableHead className="whitespace-nowrap text-xs">Fecha Mov.</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {credit.payments && credit.payments.length > 0 ? (
-                    credit.payments.map((payment) => (
-                      <TableRow key={payment.id} className="hover:bg-muted/50">
-                        <TableCell className="text-xs font-mono">{payment.linea || "-"}</TableCell>
-                        <TableCell className="text-xs text-center">{payment.numero_cuota}</TableCell>
-                        <TableCell className="text-xs">{payment.proceso || "-"}</TableCell>
-                        <TableCell className="text-xs">{formatDate(payment.fecha_inicio)}</TableCell>
-                        <TableCell className="text-xs">{formatDate(payment.fecha_corte)}</TableCell>
-                        <TableCell className="text-xs">{formatDate(payment.fecha_pago)}</TableCell>
-                        <TableCell className="text-xs text-center">{payment.tasa_actual || "-"}</TableCell>
-                        <TableCell className="text-xs text-center">{payment.plazo_actual || "-"}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.cuota)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.cargos)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.poliza)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.interes_corriente)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.interes_moratorio)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.amortizacion)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.saldo_anterior)}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.nuevo_saldo)}</TableCell>
-                        <TableCell className="text-xs text-center">{payment.dias || "-"}</TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" className="text-[10px] h-5">
-                            {payment.estado}
+            <TabsContent value="credito">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                <div className={isPanelVisible ? 'space-y-6 lg:col-span-3' : 'space-y-6 lg:col-span-5'}>
+                  {/* Main Info Card */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle>
+                            <Link href={`/dashboard/clientes/${credit.lead_id}`} className="hover:underline">
+                              {credit.client?.name || "Cliente Desconocido"}
+                            </Link>
+                          </CardTitle>
+                          <CardDescription>
+                            Institución: {credit.client?.ocupacion || "-"}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={credit.status === 'Activo' ? 'default' : 'secondary'}>
+                            {credit.status}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-center">{payment.dias_mora || "0"}</TableCell>
-                        <TableCell className="text-xs">{formatDate(payment.fecha_movimiento)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
-                        No hay pagos registrados para este crédito.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Documents Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Paperclip className="h-5 w-5" />
-                Archivos del Crédito
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {credit.documents?.map((file) => (
-                  <li
-                    key={file.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-6 w-6 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(file.created_at)}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => setIsPanelVisible(!isPanelVisible)}
+                                >
+                                  {isPanelVisible ? (
+                                    <PanelRightClose className="h-4 w-4" />
+                                  ) : (
+                                    <PanelRightOpen className="h-4 w-4" />
+                                  )}
+                                  <span className="sr-only">Toggle Panel</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{isPanelVisible ? 'Ocultar Panel' : 'Mostrar Panel'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Monto Otorgado</h3>
+                        <p className="text-muted-foreground">
+                          ₡{formatCurrency(credit.monto_credito)}
                         </p>
                       </div>
-                    </div>
-                    {file.url && (
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={file.url} target="_blank" rel="noopener noreferrer">Descargar</a>
-                        </Button>
-                    )}
-                  </li>
-                ))}
-                {(!credit.documents || credit.documents.length === 0) && (
-                    <li className="text-sm text-muted-foreground text-center py-2">No hay documentos adjuntos.</li>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Saldo Actual</h3>
+                        <p className="font-semibold text-primary">
+                          ₡{formatCurrency(credit.saldo)}
+                        </p>
+                      </div>
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Cuota Mensual</h3>
+                        <p className="text-muted-foreground">
+                          ₡{formatCurrency(credit.cuota)}
+                        </p>
+                      </div>
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Tasa / Plazo</h3>
+                        <p className="text-muted-foreground">
+                          {credit.tasa_anual}% / {credit.plazo} meses
+                        </p>
+                      </div>
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Cuotas Atrasadas</h3>
+                        <p className="font-semibold text-destructive">
+                          {credit.cuotas_atrasadas || 0}
+                        </p>
+                      </div>
+                      <div className="grid gap-1">
+                        <h3 className="font-medium">Entidad Deductora</h3>
+                        <p className="text-muted-foreground">{credit.deductora?.nombre || "-"}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-        {/* Right Panel */}
-        {isPanelVisible && (
-          <div className="space-y-6 lg:col-span-2">
-            <Card className="h-[calc(100vh-12rem)]">
-              <Tabs defaultValue="comunicaciones" className="flex h-full flex-col">
-                <TabsList className="m-2">
-                  <TabsTrigger value="comunicaciones" className="gap-1">
-                    <MessageSquare className="h-4 w-4" />
-                    Comunicaciones
-                  </TabsTrigger>
-                  <TabsTrigger value="tareas" className="gap-1">
-                    <ClipboardCheck className="h-4 w-4" />
-                    Tareas
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent
-                  value="comunicaciones"
-                  className="flex-1 overflow-y-auto"
-                >
-                  <CaseChat conversationId={credit.reference} />
-                </TabsContent>
-                <TabsContent value="tareas" className="flex-1 overflow-y-auto p-4">
-                  <div className="text-center text-sm text-muted-foreground">
-                    Funcionalidad de tareas en desarrollo.
+                  {/* Documents Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Paperclip className="h-5 w-5" />
+                        Archivos del Crédito
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {credit.documents?.map((file) => (
+                          <li
+                            key={file.id}
+                            className="flex items-center justify-between rounded-md border p-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-6 w-6 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium">{file.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatDate(file.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            {file.url && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a href={file.url} target="_blank" rel="noopener noreferrer">Descargar</a>
+                                </Button>
+                            )}
+                          </li>
+                        ))}
+                        {(!credit.documents || credit.documents.length === 0) && (
+                            <li className="text-sm text-muted-foreground text-center py-2">No hay documentos adjuntos.</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Panel inside Credito Tab */}
+                {isPanelVisible && (
+                  <div className="space-y-6 lg:col-span-2">
+                    <Card className="h-[calc(100vh-12rem)]">
+                      <Tabs defaultValue="comunicaciones" className="flex h-full flex-col">
+                        <TabsList className="m-2">
+                          <TabsTrigger value="comunicaciones" className="gap-1">
+                            <MessageSquare className="h-4 w-4" />
+                            Comunicaciones
+                          </TabsTrigger>
+                          <TabsTrigger value="tareas" className="gap-1">
+                            <ClipboardCheck className="h-4 w-4" />
+                            Tareas
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent
+                          value="comunicaciones"
+                          className="flex-1 overflow-y-auto"
+                        >
+                          <CaseChat conversationId={credit.reference} />
+                        </TabsContent>
+                        <TabsContent value="tareas" className="flex-1 overflow-y-auto p-4">
+                          <div className="text-center text-sm text-muted-foreground">
+                            Funcionalidad de tareas en desarrollo.
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </Card>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          </div>
-        )}
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="plan-pagos">
+              {/* Plan de Pagos Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Plan de Pagos</CardTitle>
+                  <CardDescription>Detalle de cuotas y movimientos históricos</CardDescription>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="whitespace-nowrap text-xs">Línea</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">No. Cuota</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Proceso</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Fecha Inicio</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Fecha Corte</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Fecha Pago</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Tasa Actual</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Plazo Actual</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Cuota</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Cargos</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Póliza</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Int. Corriente</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Int. Moratorio</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Amortización</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Saldo Anterior</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Saldo Nuevo</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Días</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Estado</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Mora (Días)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Fecha Mov.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Total</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Cargos</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Póliza</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Int. Corr.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Int. Mora.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Principal</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Mov. Caja/Usuario</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Tipo Doc.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">No. Doc.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs">Concepto</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {credit.plan_de_pagos && credit.plan_de_pagos.length > 0 ? (
+                        credit.plan_de_pagos.map((payment) => (
+                          <TableRow key={payment.id} className="hover:bg-muted/50">
+                            <TableCell className="text-xs font-mono">{payment.linea || "-"}</TableCell>
+                            <TableCell className="text-xs text-center">{payment.numero_cuota}</TableCell>
+                            <TableCell className="text-xs">{payment.proceso || "-"}</TableCell>
+                            <TableCell className="text-xs">{formatDate(payment.fecha_inicio)}</TableCell>
+                            <TableCell className="text-xs">{formatDate(payment.fecha_corte)}</TableCell>
+                            <TableCell className="text-xs">{formatDate(payment.fecha_pago)}</TableCell>
+                            <TableCell className="text-xs text-center">{payment.tasa_actual || "-"}</TableCell>
+                            <TableCell className="text-xs text-center">{payment.plazo_actual || "-"}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.cuota)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.cargos)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.poliza)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.interes_corriente)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.interes_moratorio)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.amortizacion)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.saldo_anterior)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.saldo_nuevo)}</TableCell>
+                            <TableCell className="text-xs text-center">{payment.dias || "-"}</TableCell>
+                            <TableCell className="text-xs">
+                              <Badge variant="outline" className="text-[10px] h-5">
+                                {payment.estado}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-center">{payment.dias_mora || "0"}</TableCell>
+                            <TableCell className="text-xs">{formatDate(payment.fecha_movimiento)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_total)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_cargos)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_poliza)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_interes_corriente)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_interes_moratorio)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_principal)}</TableCell>
+                            <TableCell className="text-xs">{payment.movimiento_caja_usuario || "-"}</TableCell>
+                            <TableCell className="text-xs">{payment.tipo_documento || "-"}</TableCell>
+                            <TableCell className="text-xs">{payment.numero_documento || "-"}</TableCell>
+                            <TableCell className="text-xs">{payment.concepto || "-"}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={30} className="text-center py-8 text-muted-foreground">
+                            No hay movimientos registrados para este crédito.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('fecha_ultimo_pago')->nullable();
             $table->string('garantia')->nullable(); // pagare
             $table->date('fecha_culminacion_credito')->nullable();
-            $table->decimal('tasa_anual', 5, 2)->default(0);
+            $table->decimal('tasa_anual', 5, 2)->default(33.5);
             $table->integer('plazo')->default(0); // months
             $table->integer('cuotas_atrasadas')->default(0);
 

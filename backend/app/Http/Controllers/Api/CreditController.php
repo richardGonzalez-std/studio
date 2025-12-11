@@ -29,7 +29,6 @@ class CreditController extends Controller
             'title' => 'required|string',
             'status' => 'required|string',
             'category' => 'nullable|string',
-            'progress' => 'integer|min:0|max:100',
             'lead_id' => 'required|exists:persons,id',
             'opportunity_id' => 'nullable|exists:opportunities,id',
             'assigned_to' => 'nullable|string',
@@ -48,6 +47,10 @@ class CreditController extends Controller
             'deductora_id' => 'nullable|exists:deductoras,id',
         ]);
 
+        if (!isset($validated['tasa_anual'])) {
+            $validated['tasa_anual'] = 33.5;
+        }
+
         $credit = Credit::create($validated);
 
         return response()->json($credit, 201);
@@ -55,7 +58,7 @@ class CreditController extends Controller
 
     public function show($id)
     {
-        $credit = Credit::with(['lead', 'opportunity', 'documents', 'payments'])->findOrFail($id);
+        $credit = Credit::with(['lead', 'opportunity', 'documents', 'payments', 'planDePagos'])->findOrFail($id);
 
         // Calculate current balance if not stored
         $lastPayment = $credit->payments()->where('estado', 'Pagado')->orderBy('numero_cuota', 'desc')->first();

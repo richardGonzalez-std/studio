@@ -44,9 +44,52 @@ class Credit extends Model
         'tasa_anual' => 'decimal:2',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($credit) {
+            $credit->planDePagos()->create([
+                'linea' => '1',
+                'numero_cuota' => 0,
+                'proceso' => ($credit->opened_at ?? now())->format('Ym'),
+                'fecha_inicio' => $credit->opened_at ?? now(),
+                'fecha_corte' => $credit->opened_at ?? now(),
+                'fecha_pago' => $credit->opened_at ?? now(),
+                'tasa_actual' => $credit->tasa_anual ?? 33.5,
+                'plazo_actual' => $credit->plazo ?? 0,
+                'cuota' => $credit->cuota ?? 0,
+                'cargos' => 0,
+                'poliza' => 0,
+                'interes_corriente' => 0,
+                'interes_moratorio' => 0,
+                'amortizacion' => 0,
+                'saldo_anterior' => $credit->monto_credito ?? 0,
+                'saldo_nuevo' => $credit->monto_credito ?? 0,
+                'dias' => 0,
+                'estado' => 'Vigente',
+                'dias_mora' => 0,
+                'fecha_movimiento' => $credit->opened_at ?? now(),
+                'movimiento_total' => $credit->monto_credito ?? 0,
+                'movimiento_cargos' => 0,
+                'movimiento_poliza' => 0,
+                'movimiento_interes_corriente' => 0,
+                'movimiento_interes_moratorio' => 0,
+                'movimiento_principal' => $credit->monto_credito ?? 0,
+                'movimiento_caja_usuario' => 'Sistema',
+                'tipo_documento' => 'Formalización',
+                'numero_documento' => $credit->numero_operacion,
+                'concepto' => 'Desembolso Inicial',
+            ]);
+        });
+    }
+
     public function deductora()
     {
         return $this->belongsTo(Deductora::class);
+    }
+
+    public function planDePagos()
+    {
+        return $this->hasMany(PlanDePago::class);
     }
 
     public function payments()
