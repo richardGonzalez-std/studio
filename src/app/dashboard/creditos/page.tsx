@@ -165,7 +165,6 @@ interface CreditItem {
   fecha_ultimo_pago?: string | null;
   garantia?: string | null;
   fecha_culminacion_credito?: string | null;
-  tasa_anual?: number | null;
   plazo?: number | null;
   cuotas_atrasadas?: number | null;
   deductora?: { id: number; nombre: string } | null;
@@ -685,7 +684,6 @@ export default function CreditsPage() {
       credit.linea || "PEPITO ABIERTO",
       new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.monto_credito || 0),
       credit.plazo || 120,
-      (credit.tasa_anual || 33.55) + "%",
       new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.cuota || 0),
       new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.saldo || 0),
       "0.00", // Morosidad
@@ -697,7 +695,7 @@ export default function CreditsPage() {
 
     autoTable(doc, {
       startY: finalY + 5,
-      head: [['OPERACIÓN', 'LINEA', 'MONTO', 'PLAZO', 'TASA', 'CUOTA', 'SALDO', 'MOROSIDAD', 'PRI.DED', 'ULT.MOV', 'TERMINA', 'PROCESO']],
+      head: [['OPERACIÓN', 'LINEA', 'MONTO', 'PLAZO', 'CUOTA', 'SALDO', 'MOROSIDAD', 'PRI.DED', 'ULT.MOV', 'TERMINA', 'PROCESO']],
       body: [creditRow],
       theme: 'plain',
       styles: { fontSize: 7, cellPadding: 1 },
@@ -894,7 +892,6 @@ export default function CreditsPage() {
                           <TableCell>{credit.garantia || "-"}</TableCell>
                           <TableCell>{formatDate(credit.fecha_culminacion_credito)}</TableCell>
                           <TableCell>{credit.proceso || "-"}</TableCell>
-                          <TableCell>{credit.tasa_anual ? `${credit.tasa_anual}%` : "-"}</TableCell>
                           <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
                           <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
                           <TableCell className="text-right">

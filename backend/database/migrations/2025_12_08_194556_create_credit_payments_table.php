@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('proceso')->nullable();
             $table->date('fecha_cuota')->nullable();
             $table->date('fecha_pago')->nullable();
+            $table->decimal('monto', 15, 2)->default(0);
 
             $table->decimal('cuota', 15, 2)->default(0);
             $table->decimal('cargos', 15, 2)->default(0);

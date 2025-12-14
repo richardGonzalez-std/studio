@@ -13,6 +13,7 @@ class CreditPayment extends Model
         'fecha_cuota',
         'fecha_pago',
         'cuota',
+        'monto',
         'cargos',
         'poliza',
         'interes_corriente',

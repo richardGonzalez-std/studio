@@ -49,7 +49,8 @@ class CreditController extends Controller
         ]);
 
         if (!isset($validated['tasa_anual'])) {
-            $validated['tasa_anual'] = 33.5;
+            $defaultTasa = Credit::latest()->value('tasa_anual') ?? 33.5;
+            $validated['tasa_anual'] = $defaultTasa;
         }
 
         $credit = Credit::create($validated);

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -45,10 +45,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { patronos, Patrono, deductoras, Deductora, creditConfigs } from '@/lib/data';
+import { patronos, Patrono, deductoras, Deductora, creditConfigs, credits } from '@/lib/data';
 import { API_BASE_URL } from '@/lib/env';
 import { useAuth } from '@/components/auth-guard';
 import api from '@/lib/axios';
+import CreditsPage from '../creditos/page';
 
 export default function ConfiguracionPage() {
   const { toast } = useToast();
@@ -65,6 +66,7 @@ export default function ConfiguracionPage() {
     role: 'Sin Rol Asignado',
     status: 'Activo',
   });
+  const [editingUser, setEditingUser] = useState<any | null>(null);
 
   // Deductoras state
   const [deductorasList, setDeductorasList] = useState<Deductora[]>([]);
@@ -138,6 +140,32 @@ export default function ConfiguracionPage() {
       comision: 0,
     });
     setIsDeductoraDialogOpen(true);
+  };
+
+  const openCreateUserDialog = () => {
+    setEditingUser(null);
+    setNewUser({
+      name: '',
+      email: '',
+      password: '',
+      password_confirmation: '',
+      role: 'Sin Rol Asignado',
+      status: 'Activo',
+    });
+    setIsCreateUserOpen(true);
+  };
+
+  const openEditUserDialog = (user: any) => {
+    setEditingUser(user);
+    setNewUser({
+      name: user.name || '',
+      email: user.email || '',
+      password: '',
+      password_confirmation: '',
+      role: user.role || 'Sin Rol Asignado',
+      status: user.status || 'Activo',
+    });
+    setIsCreateUserOpen(true);
   };
 
   const openEditDeductoraDialog = (deductora: Deductora) => {
@@ -237,11 +265,13 @@ export default function ConfiguracionPage() {
       });
       return;
     }
-
     setCreatingUser(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/users`, {
-        method: 'POST',
+      const method = editingUser ? 'PUT' : 'POST';
+      const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/users`;
+
+      const res = await fetch(url, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -252,10 +282,11 @@ export default function ConfiguracionPage() {
 
       if (res.ok) {
         toast({
-          title: "Usuario Creado",
-          description: "El usuario ha sido registrado exitosamente.",
+          title: editingUser ? "Usuario Actualizado" : "Usuario Creado",
+          description: editingUser ? "El usuario ha sido actualizado." : "El usuario ha sido registrado exitosamente.",
         });
         setIsCreateUserOpen(false);
+        setEditingUser(null);
         setNewUser({ 
           name: '', 
           email: '', 
@@ -268,13 +299,13 @@ export default function ConfiguracionPage() {
       } else {
         const errorData = await res.json();
         toast({
-          title: "Error al crear usuario",
+          title: editingUser ? "Error al actualizar usuario" : "Error al crear usuario",
           description: errorData.message || "Ocurrió un error inesperado.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error saving user:', error);
       toast({
         title: "Error de conexión",
         description: "No se pudo conectar con el servidor.",
@@ -282,6 +313,24 @@ export default function ConfiguracionPage() {
       });
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: any) => {
+    if (!confirm(`¿Eliminar al usuario "${user.name}"?`)) return;
+    try {
+      await fetch(`${API_BASE_URL}/users/${user.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+      toast({ title: 'Eliminado', description: 'Usuario eliminado correctamente.' });
+      fetchUsers();
+    } catch (err) {
+      console.error('Error deleting user', err);
+      toast({ title: 'Error', description: 'No se pudo eliminar el usuario.', variant: 'destructive' });
     }
   };
 
@@ -321,15 +370,91 @@ export default function ConfiguracionPage() {
     });
   };
 
+  const [tasaActual, setTasaActual] = useState<string>('33.5');
+  const [tasaLoading, setTasaLoading] = useState(false);
+  const [tasaSaving, setTasaSaving] = useState(false);
+  const [tasaCreditId, setTasaCreditId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('prestamos');
+
+  const loadTasa = useCallback(async () => {
+    setTasaLoading(true);
+    try {
+      const res = await api.get('/api/credits');
+      const list = res.data;
+      if (Array.isArray(list) && list.length > 0) {
+        const first = list[0];
+        setTasaCreditId(first.id);
+        setTasaActual(first.tasa_actual ? String(first.tasa_actual) : '33.5');
+      } else {
+        // No credits yet, keep default
+        setTasaActual('33.5');
+        setTasaCreditId(null);
+      }
+    } catch (err) {
+      console.error('Failed to load tasa_actual from credits:', err);
+      toast({ title: 'Error', description: 'No se pudo obtener la tasa actual.', variant: 'destructive' });
+    } finally {
+      setTasaLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    // Load when the component mounts and whenever the tasa tab becomes active
+    if (activeTab === 'tasa_actual') {
+      loadTasa();
+    }
+  }, [activeTab, loadTasa]);
+
   return (
-    <Tabs defaultValue="prestamos">
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(String(v))}>
       <TabsList className="mb-4">
         <TabsTrigger value="prestamos">Préstamos</TabsTrigger>
         <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
         <TabsTrigger value="patronos">Patronos</TabsTrigger>
         <TabsTrigger value="deductoras">Deductoras</TabsTrigger>
         <TabsTrigger value="api">API ERP</TabsTrigger>
+        <TabsTrigger value="tasa_actual">Tasa Actual</TabsTrigger>
       </TabsList>
+      <TabsContent value="tasa_actual">
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-3">
+            <Label htmlFor="tasa-actual" className="text-center">Tasa de Interés Anual (%)</Label>
+            <Input
+              id="tasa-actual"
+              type="number"
+              value={tasaActual}
+              onChange={(e) => setTasaActual(e.target.value)}
+              className="max-w-xs text-center font-mono"
+              disabled={tasaLoading}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={async () => {
+                  if (tasaCreditId === null) {
+                    toast({ title: 'Error', description: 'No hay crédito seleccionado para actualizar.', variant: 'destructive' });
+                    return;
+                  }
+                  setTasaSaving(true);
+                  try {
+                    await api.put(`/api/credits/${tasaCreditId}`, { tasa_anual: parseFloat(tasaActual) || 0 });
+                    toast({ title: 'Guardado', description: 'Tasa actualizada correctamente.' });
+                    // Refresh the displayed value from the server
+                    await loadTasa();
+                  } catch (err) {
+                    console.error('Failed to save tasa_actual:', err);
+                    toast({ title: 'Error', description: 'No se pudo guardar la tasa.', variant: 'destructive' });
+                  } finally {
+                    setTasaSaving(false);
+                  }
+                }}
+                disabled={tasaLoading || tasaSaving}
+              >
+                {tasaSaving ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </TabsContent>
       <TabsContent value="prestamos">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card>
@@ -364,12 +489,13 @@ export default function ConfiguracionPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="regular-interestRate">
-                  Tasa de Interés Anual (%)
+                  Tasa Anual (%)
                 </Label>
                 <Input
                   id="interestRate"
                   type="number"
                   value={regularConfig.interestRate}
+
                   onChange={handleRegularChange}
                   className="font-mono"
                 />
@@ -442,6 +568,7 @@ export default function ConfiguracionPage() {
                   value={microConfig.interestRate}
                   onChange={handleMicroChange}
                   className="font-mono"
+                  placeholder='35.5'
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -485,16 +612,16 @@ export default function ConfiguracionPage() {
               </div>
               <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1">
+                  <Button size="sm" className="gap-1" onClick={openCreateUserDialog}>
                     <PlusCircle className="h-4 w-4" />
                     Agregar Usuario
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+                    <DialogTitle>{editingUser ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}</DialogTitle>
                     <DialogDescription>
-                      Ingresa los datos del nuevo usuario. Todos los campos son obligatorios.
+                      {editingUser ? 'Modifica los datos del usuario.' : 'Ingresa los datos del nuevo usuario. Todos los campos son obligatorios.'}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleCreateUser} className="space-y-4">
@@ -573,7 +700,7 @@ export default function ConfiguracionPage() {
                     <DialogFooter>
                       <Button type="submit" disabled={creatingUser}>
                         {creatingUser && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Crear Usuario
+                        {editingUser ? 'Actualizar Usuario' : 'Crear Usuario'}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -622,8 +749,8 @@ export default function ConfiguracionPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem>Editar</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Eliminar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditUserDialog(user)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteUser(user)}>Eliminar</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

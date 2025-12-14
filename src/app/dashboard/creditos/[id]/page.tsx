@@ -780,7 +780,7 @@ function CreditDetailClient({ id }: { id: string }) {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="whitespace-nowrap text-xs">Línea</TableHead>
+      
                         <TableHead className="whitespace-nowrap text-xs">No. Cuota</TableHead>
                         <TableHead className="whitespace-nowrap text-xs">Proceso</TableHead>
                         <TableHead className="whitespace-nowrap text-xs">Fecha Inicio</TableHead>
@@ -816,7 +816,6 @@ function CreditDetailClient({ id }: { id: string }) {
                       {credit.plan_de_pagos && credit.plan_de_pagos.length > 0 ? (
                         credit.plan_de_pagos.map((payment) => (
                           <TableRow key={payment.id} className="hover:bg-muted/50">
-                            <TableCell className="text-xs font-mono">{payment.linea || "-"}</TableCell>
                             <TableCell className="text-xs text-center">{payment.numero_cuota}</TableCell>
                             <TableCell className="text-xs">{payment.proceso || "-"}</TableCell>
                             <TableCell className="text-xs">{formatDate(payment.fecha_inicio)}</TableCell>

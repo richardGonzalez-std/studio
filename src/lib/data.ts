@@ -14,64 +14,83 @@ export type User = {
 };
 
 export type Lead = {
-  id: string;
-  name: string;
-  cedula: string;
-  email: string;
-  phone: string;
-  registeredOn?: string;
-  avatarUrl?: string;
-  juicios?: number;
-  manchas?: number;
-  lead_status_id?: number;
-  puesto?: 'Interino' | 'En Propiedad';
-  antiguedad?: string;
-  salarioBase?: number;
-  salarioNeto?: number;
-  assignedTo?: string;
+  // Identificadores y Sistema (No fillable, pero necesarios)
+  id: string; // O number, dependiendo de tu DB
   created_at?: string;
-  lead_status?: { id: number; name: string; color?: string } | string;
+  updated_at?: string;
+  avatarUrl?: string; // Para la UI
+  registeredOn?: string; // Para la UI (fecha formateada)
+
+  // --- Campos del Fillable ---
+  
+  // Información Personal Básica
+  name: string;
   apellido1?: string;
   apellido2?: string;
+  cedula: string;
+  cedula_vencimiento?: string;
   fecha_nacimiento?: string;
+  genero?: string;
+  nacionalidad?: string;
   estado_civil?: string;
+  person_type_id?: number; // ID del tipo de persona
+
+  // Información de Contacto
+  email: string;
+  phone: string;
+  telefono2?: string;
+  telefono3?: string;
   whatsapp?: string;
   tel_casa?: string;
   tel_amigo?: string;
+  redes_sociales?: string; // Puede ser un string JSON o un objeto dependiendo de cómo lo envíe el API
+
+  // Ubicación Personal
   province?: string;
   canton?: string;
   distrito?: string;
   direccion1?: string;
   direccion2?: string;
+
+  // Información Laboral / Profesional
   ocupacion?: string;
-  status?: string;
-  source?: string;
-  relacionado_a?: string;
-  tipo_relacion?: string;
-  notes?: string;
-  assigned_to_id?: number;
-  person_type_id?: number;
-  is_active?: boolean;
-  cedula_vencimiento?: string;
-  nivel_academico?: string;
   profesion?: string;
+  nivel_academico?: string;
   sector?: string;
+  actividad_economica?: string;
+  tipo_sociedad?: string; // Si aplica a persona jurídica
+  nombramientos?: string; // Si aplica a persona jurídica
+
+  // Detalles del Empleo Actual
+  institucion_labora?: string;
+  departamento_cargo?: string;
+  institucion_direccion?: string;
+  puesto?: 'Interino' | 'En Propiedad' | string; // Permitimos string por si vienen otros valores
+  estado_puesto?: string;
+  
+  // Ubicación del Trabajo
   trabajo_provincia?: string;
   trabajo_canton?: string;
   trabajo_distrito?: string;
   trabajo_direccion?: string;
-  institucion_direccion?: string;
-  actividad_economica?: string;
-  tipo_sociedad?: string;
-  nombramientos?: string;
-  estado_puesto?: string;
-  genero?: string;
-  nacionalidad?: string;
-  telefono2?: string;
-  telefono3?: string;
-  institucion_labora?: string;
-  departamento_cargo?: string;
+
+  // Estado y Gestión del Lead
+  status?: string; // Estado general (texto)
+  lead_status_id?: number; // ID del estado específico
+  is_active?: boolean;
+  notes?: string;
+  responsable?: string; // Nuevo campo del fillable (nombre o ID del usuario asignado)
   deductora_id?: string | number;
+
+  // Relaciones y Referencias
+  relacionado_a?: string;
+  tipo_relacion?: string;
+
+  // --- Campos Calculados / Relaciones (No fillable directo, pero retornados por API) ---
+  lead_status?: { id: number; name: string; color?: string } | string;
+  assigned_to_id?: number; // A veces se usa distinto a 'responsable'
+  assignedTo?: string; // Nombre del responsable para mostrar en UI
+  source?: string;
 };
 
 export type Client = {
@@ -180,7 +199,7 @@ export type Credit = {
   assigned_to?: number | string | null;
   opened_at?: string;
   description?: string;
-  
+  numero_cuota : number;
   // New fields
   tipo_credito?: string | null;
   numero_operacion?: string | null;
@@ -200,26 +219,10 @@ export type Credit = {
   saldo?: number | null;
   proceso?: string | null;
   documento_id?: string | null;
-  lead?: { id: number; name: string; email: string | null } | null;
+  lead?: { id: number; name: string; email: string | null  ; cedula?: number} | null;
   opportunity?: { id: string; title: string | null } | null;
 
   // Legacy / UI fields
-  operationNumber?: string;
-  debtorName?: string;
-  debtorId?: string;
-  employer?: string;
-  type?: 'Regular' | 'Micro-crédito';
-  amount?: number;
-  balance?: number;
-  fee?: number;
-  rate?: number;
-  term?: number;
-  overdueFees?: number;
-  daysInArrears?: number;
-  deductingEntity?: string;
-  creationDate?: string;
-  dueDate?: string;
-  expediente?: string;
 };
 
 export type Deductora = {
@@ -359,12 +362,12 @@ export type Case = {
 
 export type Payment = {
   id: string;
-  operationNumber: string;
-  debtorName: string;
-  paymentDate: string;
-  amount: number;
-  difference?: number;
-  source: 'Planilla' | 'Ventanilla' | 'Transferencia';
+  cedula: number;
+  monto: number;
+  source: string;
+  credit?: Credit;
+  created_at?: string;
+
 };
 
 export type Patrono = {
@@ -581,22 +584,22 @@ export const branches: Branch[] = [
 
 export const leads: Lead[] = [
     {
-      id: 'LEAD001', name: 'Carla Díaz Solano', cedula: '3-1111-2222', email: 'carla.dias@example.com', phone: '7555-4444', registeredOn: '2023-10-27', avatarUrl: 'https://picsum.photos/seed/avatar3/40/40', juicios: 1, manchas: 2, puesto: 'Interino', antiguedad: '2 años', salarioBase: 650000, salarioNeto: 520000, assignedTo: 'Oficina',
+      id: 'LEAD001', name: 'Carla Díaz Solano', cedula: '3-1111-2222', email: 'carla.dias@example.com', phone: '7555-4444', registeredOn: '2023-10-27', avatarUrl: 'https://picsum.photos/seed/avatar3/40/40', puesto: 'Interino',  assignedTo: 'Oficina',
       lead_status_id: 0,
       apellido1: 'Díaz', apellido2: 'Solano', fecha_nacimiento: '1990-05-15', estado_civil: 'Soltero', whatsapp: '7555-4444', tel_casa: '2222-3333', province: 'San José', canton: 'San José', distrito: 'Pavas', direccion1: 'De la embajada americana 200m norte', ocupacion: 'Administrativa', status: 'Nuevo', source: 'Facebook', is_active: true
     },
     {
-      id: 'LEAD002', name: 'Daniel Alves Mora', cedula: '4-2222-3333', email: 'daniel.alves@example.com', phone: '5432-1876', registeredOn: '2023-10-24', avatarUrl: 'https://picsum.photos/seed/avatar4/40/40', juicios: 0, manchas: 0, puesto: 'En Propiedad', antiguedad: '10 años', salarioBase: 1200000, salarioNeto: 950000, assignedTo: 'Carlos Mendez',
+      id: 'LEAD002', name: 'Daniel Alves Mora', cedula: '4-2222-3333', email: 'daniel.alves@example.com', phone: '5432-1876', registeredOn: '2023-10-24', avatarUrl: 'https://picsum.photos/seed/avatar4/40/40', puesto: 'En Propiedad',     assignedTo: 'Carlos Mendez',
       lead_status_id: 0,
       apellido1: 'Alves', apellido2: 'Mora', fecha_nacimiento: '1985-08-20', estado_civil: 'Casado', whatsapp: '5432-1876', tel_casa: '2233-4455', province: 'Alajuela', canton: 'Alajuela', distrito: 'San José', direccion1: 'Barrio San José, casa 25', ocupacion: 'Ingeniero', status: 'Contactado', source: 'Referido', is_active: true
     },
     {
-      id: 'LEAD003', name: 'Eduardo Pereira', cedula: '9-0123-4567', email: 'eduardo.p@example.com', phone: '8123-9876', registeredOn: '2023-11-05', avatarUrl: 'https://picsum.photos/seed/avatar6/40/40', juicios: 0, manchas: 1, puesto: 'En Propiedad', antiguedad: '8 años', salarioBase: 980000, salarioNeto: 780000, assignedTo: 'Oficina',
+      id: 'LEAD003', name: 'Eduardo Pereira', cedula: '9-0123-4567', email: 'eduardo.p@example.com', phone: '8123-9876', registeredOn: '2023-11-05', avatarUrl: 'https://picsum.photos/seed/avatar6/40/40', puesto: 'En Propiedad',  assignedTo: 'Oficina',
       lead_status_id: 0,
       apellido1: 'Pereira', apellido2: 'Gómez', fecha_nacimiento: '1988-03-10', estado_civil: 'Divorciado', whatsapp: '8123-9876', province: 'Heredia', canton: 'Heredia', distrito: 'San Francisco', direccion1: 'Condominio Las Flores', ocupacion: 'Contador', status: 'Nuevo', source: 'Web', is_active: true
     },
     {
-      id: 'LEAD004', name: 'Fernanda Núñez', cedula: '1-2345-6789', email: 'fernanda.n@example.com', phone: '7890-1234', registeredOn: '2023-11-06', avatarUrl: 'https://picsum.photos/seed/avatar7/40/40', juicios: 2, manchas: 3, puesto: 'Interino', antiguedad: '6 meses', salarioBase: 450000, salarioNeto: 380000, assignedTo: 'Wilmer Marquez',
+      id: 'LEAD004', name: 'Fernanda Núñez', cedula: '1-2345-6789', email: 'fernanda.n@example.com', phone: '7890-1234', registeredOn: '2023-11-06', avatarUrl: 'https://picsum.photos/seed/avatar7/40/40', puesto: 'Interino',  assignedTo: 'Wilmer Marquez',
       lead_status_id: 0,
       apellido1: 'Núñez', apellido2: 'Rojas', fecha_nacimiento: '1995-12-01', estado_civil: 'Soltero', whatsapp: '7890-1234', province: 'Cartago', canton: 'Cartago', distrito: 'Oriental', direccion1: 'Frente al colegio San Luis', ocupacion: 'Recepcionista', status: 'En Proceso', source: 'Instagram', is_active: true
     },
@@ -671,6 +674,7 @@ export const credits: Credit[] = [
         id: 1,
         numero_operacion: 'CR-2024-001',
         tipo_credito: 'personal',
+        numero_cuota:1,
         status: 'activo',
         monto_credito: 5000000,
         saldo: 4500000,
@@ -685,16 +689,13 @@ export const credits: Credit[] = [
         cuotas_atrasadas: 0,
         deductora: { id: 1, nombre: 'CoopeAnde' },
         lead: { id: 1, name: 'Juan Perez', email: 'juan.perez@example.com' },
-        operationNumber: 'CR-2024-001', // Legacy
-        debtorName: 'Juan Perez', // Legacy
-        amount: 5000000, // Legacy
-        balance: 4500000, // Legacy
         reference: 'CR-2024-001', title: 'Préstamo Personal Juan', category: 'Personal', progress: 10, lead_id: 1, assigned_to: 'Carlos Mendez', opened_at: '2024-01-10', description: 'Préstamo para consolidación de deudas', deductora_id: 1, linea: 'Personal', proceso: 'Normal', documento_id: 'DOC-001'
     },
     {
         id: 2,
         numero_operacion: 'CR-2023-055',
         tipo_credito: 'hipotecario',
+        numero_cuota:10,
         status: 'mora',
         monto_credito: 150000,
         saldo: 145000,
@@ -712,145 +713,127 @@ export const credits: Credit[] = [
         reference: 'CR-2023-055', title: 'Hipoteca Casa Maria', category: 'Hipotecario', progress: 5, lead_id: 2, assigned_to: 'Wilmer Marquez', opened_at: '2023-05-15', description: 'Compra de vivienda principal', deductora_id: 2, linea: 'Vivienda', proceso: 'Cobro Administrativo', documento_id: 'DOC-002'
     },
     {
-        id: 3,
-        numero_operacion: 'CR-2022-102',
-        tipo_credito: 'prendario',
-        status: 'cerrado',
-        monto_credito: 8000000,
-        saldo: 0,
-        cuota: 250000,
-        plazo: 36,
-        tasa_anual: 15.0,
-        divisa: 'CRC',
-        fecha_ultimo_pago: '2024-02-28',
-        primera_deduccion: '2022-11-01',
-        garantia: 'Vehículo 2020',
-        fecha_culminacion_credito: '2025-10-01',
-        cuotas_atrasadas: 0,
-        deductora: { id: 3, nombre: 'BAC Credomatic' },
-        lead: { id: 3, name: 'Carlos Sanchez', email: 'carlos.s@example.com' },
-        operationNumber: 'CR-2022-102',
-        debtorName: 'Carlos Sanchez',
-        amount: 8000000,
-        balance: 0,
-        reference: 'CR-2022-102', title: 'Prendario Vehículo', category: 'Prendario', progress: 100, lead_id: 3, assigned_to: 'Oficina', opened_at: '2022-10-15', description: 'Compra de vehículo usado', deductora_id: 3, linea: 'Vehículos', proceso: 'Cerrado', documento_id: 'DOC-003'
+      id: 3,
+      numero_operacion: 'CR-2022-102',
+      tipo_credito: 'prendario',
+      status: 'cerrado',
+      monto_credito: 8000000,
+      saldo: 0,
+      cuota: 250000,
+      plazo: 36,
+      tasa_anual: 15.0,
+      divisa: 'CRC',
+      fecha_ultimo_pago: '2024-02-28',
+      primera_deduccion: '2022-11-01',
+      garantia: 'Vehículo 2020',
+      fecha_culminacion_credito: '2025-10-01',
+      cuotas_atrasadas: 0,
+      deductora: { id: 3, nombre: 'BAC Credomatic' },
+      lead: { id: 3, name: 'Carlos Sanchez', email: 'carlos.s@example.com' },
+      reference: 'CR-2022-102', title: 'Prendario Vehículo', category: 'Prendario', progress: 100, lead_id: 3, assigned_to: 'Oficina', opened_at: '2022-10-15', description: 'Compra de vehículo usado', deductora_id: 3, linea: 'Vehículos', proceso: 'Cerrado', documento_id: 'DOC-003',
+      numero_cuota: 0
     },
     {
-        id: 4,
-        numero_operacion: 'CR-2024-010',
-        tipo_credito: 'personal',
-        status: 'legal',
-        monto_credito: 10000,
-        saldo: 9800,
-        cuota: 500,
-        plazo: 24,
-        tasa_anual: 12.0,
-        divisa: 'EUR',
-        fecha_ultimo_pago: '2023-12-15',
-        primera_deduccion: '2024-01-15',
-        garantia: 'Pagaré',
-        fecha_culminacion_credito: '2026-01-15',
-        cuotas_atrasadas: 4,
-        deductora: { id: 1, nombre: 'CoopeAnde' },
-        lead: { id: 4, name: 'Ana White', email: 'ana.white@example.com' },
-        operationNumber: 'CR-2024-010',
-        debtorName: 'Ana White',
-        amount: 10000,
-        balance: 9800,
-        reference: 'CR-2024-010', title: 'Préstamo Personal Ana', category: 'Personal', progress: 15, lead_id: 4, assigned_to: 'Daniel Gómez', opened_at: '2023-12-01', description: 'Viaje a Europa', deductora_id: 1, linea: 'Personal', proceso: 'Cobro Judicial', documento_id: 'DOC-004'
+      id: 4,
+      numero_operacion: 'CR-2024-010',
+      tipo_credito: 'personal',
+      status: 'legal',
+      monto_credito: 10000,
+      saldo: 9800,
+      cuota: 500,
+      plazo: 24,
+      tasa_anual: 12.0,
+      divisa: 'EUR',
+      fecha_ultimo_pago: '2023-12-15',
+      primera_deduccion: '2024-01-15',
+      garantia: 'Pagaré',
+      fecha_culminacion_credito: '2026-01-15',
+      cuotas_atrasadas: 4,
+      deductora: { id: 1, nombre: 'CoopeAnde' },
+      lead: { id: 4, name: 'Ana White', email: 'ana.white@example.com' },
+      reference: 'CR-2024-010', title: 'Préstamo Personal Ana', category: 'Personal', progress: 15, lead_id: 4, assigned_to: 'Daniel Gómez', opened_at: '2023-12-01', description: 'Viaje a Europa', deductora_id: 1, linea: 'Personal', proceso: 'Cobro Judicial', documento_id: 'DOC-004',
+      numero_cuota: 0
     },
     {
-        id: 5,
-        numero_operacion: 'CR-2024-088',
-        tipo_credito: 'personal',
-        status: 'activo',
-        monto_credito: 5000,
-        saldo: 4800,
-        cuota: 200,
-        plazo: 36,
-        tasa_anual: 10.0,
-        divisa: 'GBP',
-        fecha_ultimo_pago: '2024-03-01',
-        primera_deduccion: '2024-03-01',
-        garantia: 'Fiduciaria',
-        fecha_culminacion_credito: '2027-03-01',
-        cuotas_atrasadas: 0,
-        deductora: { id: 4, nombre: 'Davivienda' },
-        lead: { id: 5, name: 'James Bond', email: 'j.bond@example.com' },
-        operationNumber: 'CR-2024-088',
-        debtorName: 'James Bond',
-        amount: 5000,
-        balance: 4800,
-        reference: 'CR-2024-088', title: 'Préstamo Personal James', category: 'Personal', progress: 5, lead_id: 5, assigned_to: 'Ahixel Rojas', opened_at: '2024-02-15', description: 'Gastos personales', deductora_id: 4, linea: 'Personal', proceso: 'Normal', documento_id: 'DOC-005'
+      id: 5,
+      numero_operacion: 'CR-2024-088',
+      tipo_credito: 'personal',
+      status: 'activo',
+      monto_credito: 5000,
+      saldo: 4800,
+      cuota: 200,
+      plazo: 36,
+      tasa_anual: 10.0,
+      divisa: 'GBP',
+      fecha_ultimo_pago: '2024-03-01',
+      primera_deduccion: '2024-03-01',
+      garantia: 'Fiduciaria',
+      fecha_culminacion_credito: '2027-03-01',
+      cuotas_atrasadas: 0,
+      deductora: { id: 4, nombre: 'Davivienda' },
+      lead: { id: 5, name: 'James Bond', email: 'j.bond@example.com' },
+      reference: 'CR-2024-088', title: 'Préstamo Personal James', category: 'Personal', progress: 5, lead_id: 5, assigned_to: 'Ahixel Rojas', opened_at: '2024-02-15', description: 'Gastos personales', deductora_id: 4, linea: 'Personal', proceso: 'Normal', documento_id: 'DOC-005',
+      numero_cuota: 0
     },
     {
-        id: 6,
-        numero_operacion: 'CR-2023-200',
-        tipo_credito: 'hipotecario',
-        status: 'activo',
-        monto_credito: 75000000,
-        saldo: 70000000,
-        cuota: 650000,
-        plazo: 300,
-        tasa_anual: 8.5,
-        divisa: 'CRC',
-        fecha_ultimo_pago: '2024-03-05',
-        garantia: 'Hipoteca',
-        fecha_culminacion_credito: '2048-05-20',
-        cuotas_atrasadas: 0,
-        deductora: { id: 2, nombre: 'Banco Nacional' },
-        lead: { id: 6, name: 'Elena Torres', email: 'elena.t@example.com' },
-        operationNumber: 'CR-2023-200',
-        debtorName: 'Elena Torres',
-        amount: 75000000,
-        balance: 70000000,
-        reference: 'CR-2023-200', title: 'Hipoteca Casa Elena', category: 'Hipotecario', progress: 12, lead_id: 6, assigned_to: 'Wilmer Marquez', opened_at: '2023-04-20', description: 'Compra de vivienda', deductora_id: 2, linea: 'Vivienda', proceso: 'Normal', documento_id: 'DOC-006'
+      id: 6,
+      numero_operacion: 'CR-2023-200',
+      tipo_credito: 'hipotecario',
+      status: 'activo',
+      monto_credito: 75000000,
+      saldo: 70000000,
+      cuota: 650000,
+      plazo: 300,
+      tasa_anual: 8.5,
+      divisa: 'CRC',
+      fecha_ultimo_pago: '2024-03-05',
+      garantia: 'Hipoteca',
+      fecha_culminacion_credito: '2048-05-20',
+      cuotas_atrasadas: 0,
+      deductora: { id: 2, nombre: 'Banco Nacional' },
+      lead: { id: 6, name: 'Elena Torres', email: 'elena.t@example.com' },
+      reference: 'CR-2023-200', title: 'Hipoteca Casa Elena', category: 'Hipotecario', progress: 12, lead_id: 6, assigned_to: 'Wilmer Marquez', opened_at: '2023-04-20', description: 'Compra de vivienda', deductora_id: 2, linea: 'Vivienda', proceso: 'Normal', documento_id: 'DOC-006',
+      numero_cuota: 0
     },
     {
-        id: 7,
-        numero_operacion: 'CR-2021-005',
-        tipo_credito: 'personal',
-        status: 'legal',
-        monto_credito: 2000000,
-        saldo: 1800000,
-        cuota: 85000,
-        plazo: 36,
-        tasa_anual: 22.0,
-        divisa: 'CRC',
-        fecha_ultimo_pago: '2023-06-10',
-        garantia: 'Pagaré',
-        fecha_culminacion_credito: '2024-06-10',
-        cuotas_atrasadas: 8,
-        deductora: { id: 5, nombre: 'CoopeServidores' },
-        lead: { id: 7, name: 'Mario Jimenez', email: 'mario.j@example.com' },
-        operationNumber: 'CR-2021-005',
-        debtorName: 'Mario Jimenez',
-        amount: 2000000,
-        balance: 1800000,
-        reference: 'CR-2021-005', title: 'Préstamo Personal Mario', category: 'Personal', progress: 60, lead_id: 7, assigned_to: 'Carlos Mendez', opened_at: '2021-05-10', description: 'Reparaciones hogar', deductora_id: 5, linea: 'Personal', proceso: 'Cobro Judicial', documento_id: 'DOC-007'
+      id: 7,
+      numero_operacion: 'CR-2021-005',
+      tipo_credito: 'personal',
+      status: 'legal',
+      monto_credito: 2000000,
+      saldo: 1800000,
+      cuota: 85000,
+      plazo: 36,
+      tasa_anual: 22.0,
+      divisa: 'CRC',
+      fecha_ultimo_pago: '2023-06-10',
+      garantia: 'Pagaré',
+      fecha_culminacion_credito: '2024-06-10',
+      cuotas_atrasadas: 8,
+      deductora: { id: 5, nombre: 'CoopeServidores' },
+      lead: { id: 7, name: 'Mario Jimenez', email: 'mario.j@example.com' },
+      reference: 'CR-2021-005', title: 'Préstamo Personal Mario', category: 'Personal', progress: 60, lead_id: 7, assigned_to: 'Carlos Mendez', opened_at: '2021-05-10', description: 'Reparaciones hogar', deductora_id: 5, linea: 'Personal', proceso: 'Cobro Judicial', documento_id: 'DOC-007',
+      numero_cuota: 0
     },
     {
-        id: 8,
-        numero_operacion: 'CR-2024-012',
-        tipo_credito: 'prendario',
-        status: 'activo',
-        monto_credito: 25000,
-        saldo: 24000,
-        cuota: 600,
-        plazo: 60,
-        tasa_anual: 9.0,
-        divisa: 'USD',
-        fecha_ultimo_pago: '2024-02-20',
-        garantia: 'Vehículo 2023',
-        fecha_culminacion_credito: '2029-02-20',
-        cuotas_atrasadas: 0,
-        deductora: { id: 3, nombre: 'BAC Credomatic' },
-        lead: { id: 8, name: 'Sofia Castro', email: 'sofia.c@example.com' },
-        operationNumber: 'CR-2024-012',
-        debtorName: 'Sofia Castro',
-        amount: 25000,
-        balance: 24000,
-        reference: 'CR-2024-012', title: 'Prendario Vehículo Sofia', category: 'Prendario', progress: 5, lead_id: 8, assigned_to: 'Oficina', opened_at: '2024-01-20', description: 'Compra de vehículo nuevo', deductora_id: 3, linea: 'Vehículos', proceso: 'Normal', documento_id: 'DOC-008'
+      id: 8,
+      numero_operacion: 'CR-2024-012',
+      tipo_credito: 'prendario',
+      status: 'activo',
+      monto_credito: 25000,
+      saldo: 24000,
+      cuota: 600,
+      plazo: 60,
+      tasa_anual: 9.0,
+      divisa: 'USD',
+      fecha_ultimo_pago: '2024-02-20',
+      garantia: 'Vehículo 2023',
+      fecha_culminacion_credito: '2029-02-20',
+      cuotas_atrasadas: 0,
+      deductora: { id: 3, nombre: 'BAC Credomatic' },
+      lead: { id: 8, name: 'Sofia Castro', email: 'sofia.c@example.com' },
+      reference: 'CR-2024-012', title: 'Prendario Vehículo Sofia', category: 'Prendario', progress: 5, lead_id: 8, assigned_to: 'Oficina', opened_at: '2024-01-20', description: 'Compra de vehículo nuevo', deductora_id: 3, linea: 'Vehículos', proceso: 'Normal', documento_id: 'DOC-008',
+      numero_cuota: 0
     }
 ];
 
@@ -966,11 +949,11 @@ export const cases: Case[] = [
 ];
 
 export const payments: Payment[] = [
-    { id: 'PAY001', operationNumber: 'CR-001', debtorName: 'John Doe', paymentDate: '2023-11-01', amount: 150000, source: 'Planilla' },
-    { id: 'PAY002', operationNumber: 'CR-005', debtorName: 'Lucía Méndez', paymentDate: '2023-11-01', amount: 195000, difference: 5000, source: 'Planilla' },
-    { id: 'PAY003', operationNumber: 'CR-006', debtorName: 'Carlos Fernández', paymentDate: '2023-11-02', amount: 60000, source: 'Planilla' },
-    { id: 'PAY004', operationNumber: 'MC-001', debtorName: 'Camila Gómez', paymentDate: '2023-11-05', amount: 50000, source: 'Ventanilla' },
-    { id: 'PAY005', operationNumber: 'CR-002', debtorName: 'Ana Silva Rojas', paymentDate: '2023-11-06', amount: 70000, difference: 5000, source: 'Transferencia' },
+    { id: 'PAY001',  cedula: 123456789, monto: 150000, source: 'Planilla' },
+    { id: 'PAY002', cedula: 987654321, monto: 195000,  source: 'Planilla' },
+    { id: 'PAY003', cedula: 456789123, monto: 60000, source: 'Planilla' },
+    { id: 'PAY004', cedula: 789123456, monto: 50000, source: 'Ventanilla' },
+    { id: 'PAY005', cedula: 321654987, monto: 70000,  source: 'Transferencia' },
 ];
 
 export const patronos: Patrono[] = [

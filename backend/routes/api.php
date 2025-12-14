@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\OpportunityController;
 use App\Http\Controllers\Api\PersonDocumentController;
-
+use App\Http\Controllers\Api\CreditPaymentController;
 // Rewards Controllers
 use App\Http\Controllers\Api\Rewards\RewardController;
 use App\Http\Controllers\Api\Rewards\BadgeController;
@@ -69,7 +69,9 @@ Route::post('/person-documents', [PersonDocumentController::class, 'store']);
 Route::delete('/person-documents/{id}', [PersonDocumentController::class, 'destroy']);
 
 // Pagos de Crédito
-Route::apiResource('credit-payments', \App\Http\Controllers\Api\CreditPaymentController::class);
+Route::apiResource('credit-payments', CreditPaymentController::class);
+Route::post('credit-payments/upload', [CreditPaymentController::class, 'upload']);
+Route::post('credit-payments/adelanto', [CreditPaymentController::class, 'adelanto']);
 
 // --- Rewards / Gamificación (Público temporalmente) ---
 Route::prefix('rewards')->group(function () {

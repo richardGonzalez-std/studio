@@ -20,7 +20,7 @@ class DetailedCreditSeeder extends Seeder
                 'name' => 'Juan Pérez',
                 'email' => 'juan.perez@example.com',
                 'phone' => '8888-8888',
-                'status_id' => 1, // Assuming 1 exists, or we might need to check LeadStatus
+                // Removed 'status_id' (not in Lead fillable), 'source' is ok if present
                 'source' => 'Web',
             ]);
         }
@@ -41,8 +41,6 @@ class DetailedCreditSeeder extends Seeder
                 'assigned_to' => 'Asesor Principal',
                 'opened_at' => Carbon::now()->subMonths(5),
                 'description' => 'Crédito para consolidación de deudas.',
-
-                // Detailed fields
                 'tipo_credito' => 'Fiduciario',
                 'numero_operacion' => $operationNumber,
                 'monto_credito' => 5000000.00,
@@ -53,9 +51,9 @@ class DetailedCreditSeeder extends Seeder
                 'tasa_anual' => 18.50,
                 'plazo' => 60,
                 'cuotas_atrasadas' => 0,
+                // Removed any fields not in Credit::$fillable
             ]);
         } else {
-            // Update existing to match sample requirements if needed
             $credit->update([
                 'monto_credito' => 5000000.00,
                 'cuota' => 145000.00,
@@ -108,8 +106,6 @@ class DetailedCreditSeeder extends Seeder
                 'estado' => $status,
                 'fecha_movimiento' => $fechaPago ? $fechaPago->format('Y-m-d') : null,
                 'movimiento_total' => $fechaPago ? $paymentAmount : 0,
-
-                // New Detailed Fields
                 'linea' => 'LP-001',
                 'fecha_inicio' => $fechaInicio->format('Y-m-d'),
                 'fecha_corte' => $fechaCorte->format('Y-m-d'),
@@ -117,6 +113,7 @@ class DetailedCreditSeeder extends Seeder
                 'plazo_actual' => $term - $i + 1,
                 'dias' => $days,
                 'dias_mora' => 0,
+                // Removed: 'cedula', 'monto', 'fuente', 'diferencia', 'notas' (not in CreditPayment)
             ]);
 
             $balance = $newBalance;

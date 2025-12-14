@@ -24,6 +24,7 @@ class Credit extends Model
         'tipo_credito',
         'numero_operacion',
         'monto_credito',
+        'saldo', // <--- AGREGADO: Vital para el recálculo de deuda
         'cuota',
         'fecha_ultimo_pago',
         'garantia',
@@ -40,6 +41,7 @@ class Credit extends Model
         'fecha_ultimo_pago' => 'date',
         'fecha_culminacion_credito' => 'date',
         'monto_credito' => 'decimal:2',
+        'saldo' => 'decimal:2', // <--- AGREGADO: Para manejo preciso de moneda
         'cuota' => 'decimal:2',
         'tasa_anual' => 'decimal:2',
     ];
@@ -47,6 +49,12 @@ class Credit extends Model
     protected static function booted()
     {
         static::created(function ($credit) {
+            // Aseguramos que al crear, el saldo inicial sea igual al monto del crédito
+            if (!isset($credit->saldo)) {
+                $credit->saldo = $credit->monto_credito;
+                $credit->saveQuietly();
+            }
+
             $credit->planDePagos()->create([
                 'linea' => '1',
                 'numero_cuota' => 0,
