@@ -12,7 +12,7 @@ return [
     'allowed_methods' => ['*'],
 
     // Permitir cualquier origen
-    'allowed_origins' => ['http://localhost:3000'],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
