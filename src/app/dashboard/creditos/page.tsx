@@ -136,6 +136,8 @@ interface CreditPayment {
   estado: string;
   fecha_movimiento: string | null;
   movimiento_total: number;
+  movimiento_amortizacion?: number;
+  tasa_actual?: number; // Agregado para leer la tasa del plan
 }
 
 interface CreditItem {
@@ -156,7 +158,7 @@ interface CreditItem {
   created_at?: string | null;
   updated_at?: string | null;
   documents?: CreditDocument[];
-  payments?: CreditPayment[];
+  plan_de_pagos?: CreditPayment[];
   // New fields
   tipo_credito?: string | null;
   numero_operacion?: string | null;
@@ -174,6 +176,7 @@ interface CreditItem {
   saldo?: number | null;
   proceso?: string | null;
   documento_id?: string | null;
+  tasa_anual?: number | null; // Agregado
 }
 
 interface CreditFormValues {
@@ -259,7 +262,7 @@ export default function CreditsPage() {
   const [credits, setCredits] = useState<CreditItem[]>([]);
   const [leads, setLeads] = useState<ClientOption[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityOption[]>([]);
-  const [users, setUsers] = useState<{id: number, name: string}[]>([]);
+  const [users, setUsers] = useState<{ id: number, name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(true);
@@ -305,7 +308,6 @@ export default function CreditsPage() {
   const [detailCredit, setDetailCredit] = useState<CreditItem | null>(null);
 
   // Drag scroll state 
-  
 
   const currentLead = useMemo(() => {
     return formValues.leadId ? leads.find((lead) => lead.id === formValues.leadId) : null;
@@ -420,8 +422,6 @@ export default function CreditsPage() {
     fetchUsers();
   }, [fetchCredits, fetchLeads, fetchOpportunities, fetchUsers]);
 
-  // Cleanup drag event listeners on unmount
-
   // Populate lead objects on credits based on lead_id
   useEffect(() => {
     setCredits(prevCredits => prevCredits.map(credit => ({
@@ -452,19 +452,19 @@ export default function CreditsPage() {
         filtered = filtered.filter(c => c.monto_credito?.toString().includes(filters.monto));
       }
       if (filters.numeroOperacion) {
-        filtered = filtered.filter(c => 
+        filtered = filtered.filter(c =>
           (c.numero_operacion?.toLowerCase().includes(filters.numeroOperacion.toLowerCase())) ||
           (c.reference?.toLowerCase().includes(filters.numeroOperacion.toLowerCase()))
         );
       }
       if (filters.leadName) {
-        filtered = filtered.filter(c => 
+        filtered = filtered.filter(c =>
           (c.lead?.name?.toLowerCase().includes(filters.leadName.toLowerCase())) ||
           (c.client?.name?.toLowerCase().includes(filters.leadName.toLowerCase()))
         );
       }
       if (filters.documentoId) {
-         filtered = filtered.filter(c => c.documento_id?.toLowerCase().includes(filters.documentoId.toLowerCase()));
+        filtered = filtered.filter(c => c.documento_id?.toLowerCase().includes(filters.documentoId.toLowerCase()));
       }
 
       return filtered;
@@ -719,7 +719,7 @@ export default function CreditsPage() {
     doc.text("*** NO TIENE FIANZAS ACTIVAS ***", 20, finalY + 10);
 
     // Plan de Pagos (Detailed Installments)
-    if (credit.payments && credit.payments.length > 0) {
+    if (credit.plan_de_pagos && credit.plan_de_pagos.length > 0) {
       finalY = finalY + 20;
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -727,7 +727,7 @@ export default function CreditsPage() {
       doc.text("Plan de Pagos", 14, finalY);
       doc.setTextColor(0, 0, 0);
 
-      const paymentRows = credit.payments.map(p => [
+      const paymentRows = credit.plan_de_pagos.map(p => [
         p.numero_cuota,
         formatDate(p.fecha_cuota),
         formatDate(p.fecha_pago),
@@ -815,9 +815,9 @@ export default function CreditsPage() {
                       placeholder="ID Documento"
                     />
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setFilters({ monto: "", numeroOperacion: "", leadName: "", documentoId: "" })}
                     className="mt-2"
                   >
@@ -872,88 +872,110 @@ export default function CreditsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {getCreditsForTab(tab.value).map((credit) => (
-                        <TableRow key={credit.id}>
-                          <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
-                          <TableCell>{credit.documento_id || "-"}</TableCell>
-                          <TableCell>{credit.client?.name || credit.lead?.name || "-"}</TableCell>
-                          <TableCell className="font-medium">
-                            <Link href={`/dashboard/creditos/${credit.id}`} className="hover:underline text-primary">
-                              {credit.numero_operacion || credit.reference || "-"}
-                            </Link>
-                          </TableCell>
-                          <TableCell>{credit.divisa || "CRC"}</TableCell>
-                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.monto_credito || 0)}</TableCell>
-                          <TableCell>{credit.plazo ? `${credit.plazo} meses` : "-"}</TableCell>
-                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.saldo || 0)}</TableCell>
-                          <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.cuota || 0)}</TableCell>
-                          <TableCell>{credit.linea || "-"}</TableCell>
-                          <TableCell>{formatDate(credit.primera_deduccion)}</TableCell>
-                          <TableCell>{credit.garantia || "-"}</TableCell>
-                          <TableCell>{formatDate(credit.fecha_culminacion_credito)}</TableCell>
-                          <TableCell>{credit.proceso || "-"}</TableCell>
-                          <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
-                          <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                asChild
-                                title="Ver detalle"
-                                className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
-                              >
-                                <Link href={`/dashboard/creditos/${credit.id}`}>
-                                  <Eye className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                asChild
-                                title="Editar crédito"
-                                className="border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600"
-                              >
-                                <Link href={`/dashboard/creditos/${credit.id}?edit=true`}>
-                                  <Pencil className="h-4 w-4" />
-                                </Link>
-                              </Button>
+                      {getCreditsForTab(tab.value).map((credit) => {
+                        // --- LÓGICA CALCULADA EN FRONTEND ---
+                        const pagosOrdenados = credit.plan_de_pagos?.length
+                          ? [...credit.plan_de_pagos].sort((a, b) => a.numero_cuota - b.numero_cuota)
+                          : [];
 
-                              {/* Export visible button with dropdown (CSV / PDF) */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="icon" className="h-9 w-9 rounded-md bg-blue-900 text-white hover:bg-blue-800 border-0">
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleExportCSV(credit)}>
-                                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                    Exportar CSV
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExportPDF(credit)}>
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Exportar PDF
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                        // 1. Primera Deducción: De cabecera o la primera cuota
+                        const fechaInicio = credit.primera_deduccion || (pagosOrdenados.length > 0 ? pagosOrdenados[0].fecha_cuota : null);
 
-                              {/* Remaining More menu (only Gestionar documentos) */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => { setDocumentsCredit(credit); setIsDocumentsOpen(true); }}>
-                                    Gestionar documentos
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                        // 2. Vencimiento: De cabecera o la última cuota
+                        const fechaFin = credit.fecha_culminacion_credito || (pagosOrdenados.length > 0 ? pagosOrdenados[pagosOrdenados.length - 1].fecha_cuota : null);
+
+                        // 3. Tasa: De cabecera o del primer pago
+                        const tasa = credit.tasa_anual || (pagosOrdenados.length > 0 ? pagosOrdenados[0].tasa_actual : null);
+
+                        // 4. Fallbacks para Línea y Proceso
+                        const linea = credit.linea || credit.category || "-";
+                        const proceso = credit.proceso || credit.status || "-";
+
+                        return (
+                          <TableRow key={credit.id}>
+                            <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
+                            <TableCell>{credit.documento_id || "-"}</TableCell>
+                            <TableCell>{credit.client?.name || credit.lead?.name || "-"}</TableCell>
+                            <TableCell className="font-medium">
+                              <Link href={`/dashboard/creditos/${credit.id}`} className="hover:underline text-primary">
+                                {credit.numero_operacion || credit.reference || "-"}
+                              </Link>
+                            </TableCell>
+                            <TableCell>{credit.divisa || "CRC"}</TableCell>
+                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.monto_credito || 0)}</TableCell>
+                            <TableCell>{credit.plazo ? `${credit.plazo} meses` : "-"}</TableCell>
+                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.saldo || 0)}</TableCell>
+                            <TableCell>{new Intl.NumberFormat('es-CR', { style: 'currency', currency: credit.divisa || 'CRC' }).format(credit.cuota || 0)}</TableCell>
+
+                            {/* Columnas Calculadas / Fallbacks */}
+                            <TableCell>{linea}</TableCell>
+                            <TableCell>{formatDate(fechaInicio)}</TableCell>
+                            <TableCell>{credit.garantia || "-"}</TableCell>
+                            <TableCell>{formatDate(fechaFin)}</TableCell>
+                            <TableCell>{proceso}</TableCell>
+                            <TableCell>{tasa ? `${tasa}%` : "-"}</TableCell>
+
+                            <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
+                            <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  asChild
+                                  title="Ver detalle"
+                                  className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Link href={`/dashboard/creditos/${credit.id}`}>
+                                    <Eye className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  asChild
+                                  title="Editar crédito"
+                                  className="border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600"
+                                >
+                                  <Link href={`/dashboard/creditos/${credit.id}?edit=true`}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="icon" className="h-9 w-9 rounded-md bg-blue-900 text-white hover:bg-blue-800 border-0">
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleExportCSV(credit)}>
+                                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                      Exportar CSV
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExportPDF(credit)}>
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      Exportar PDF
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => { setDocumentsCredit(credit); setIsDocumentsOpen(true); }}>
+                                      Gestionar documentos
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </DraggableScrollContainer>
@@ -1360,14 +1382,10 @@ function DraggableScrollContainer({ children, className }: { children: React.Rea
       slider.scrollLeft = scrollLeft - walk;
     };
 
-    // Add listeners to window for mouseup/leave to handle dragging outside the container
     slider.addEventListener("mousedown", onMouseDown);
     slider.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    
-    // We still keep mouseleave on slider or window? 
-    // If we drag outside, we want to keep dragging usually, but let's stick to the requested logic first.
-    // The requested logic had mouseleave on slider.
+
     slider.addEventListener("mouseleave", onMouseLeave);
     slider.addEventListener("mouseup", onMouseUp);
 

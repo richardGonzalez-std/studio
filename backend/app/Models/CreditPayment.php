@@ -24,6 +24,7 @@ class CreditPayment extends Model
         'estado',
         'fecha_movimiento',
         'movimiento_total',  // Usado si hubo excedente
+        'movimiento_amortizacion',
         'linea',
         'fecha_inicio',
         'fecha_corte',
@@ -51,6 +52,7 @@ class CreditPayment extends Model
         'saldo_anterior' => 'decimal:2',
         'saldo_nuevo' => 'decimal:2',
         'movimiento_total' => 'decimal:2',
+        'movimiento_amortizacion' => 'decimal:2',
         'tasa_actual' => 'decimal:2',
     ];
 

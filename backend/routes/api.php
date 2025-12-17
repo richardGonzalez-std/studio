@@ -73,6 +73,9 @@ Route::apiResource('credit-payments', CreditPaymentController::class);
 Route::post('credit-payments/upload', [CreditPaymentController::class, 'upload']);
 Route::post('credit-payments/adelanto', [CreditPaymentController::class, 'adelanto']);
 
+// Analisis CRUD
+Route::apiResource('analisis', \App\Http\Controllers\Api\AnalisisController::class);
+
 // --- Rewards / Gamificación (Público temporalmente) ---
 Route::prefix('rewards')->group(function () {
     // Perfil y balance

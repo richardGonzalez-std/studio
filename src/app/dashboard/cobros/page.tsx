@@ -204,6 +204,9 @@ export default function CobrosPage() {
   const [tipoCobro, setTipoCobro] = useState('normal');
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState('');
+  // Para adelanto de cobro: cuotas seleccionadas
+  const [cuotasDisponibles, setCuotasDisponibles] = useState<any[]>([]);
+  const [cuotasSeleccionadas, setCuotasSeleccionadas] = useState<number[]>([]);
   
   // --- NUEVO: Estado para estrategia de Abono Extraordinario ---
   // 'reduce_amount' = Bajar Cuota | 'reduce_term' = Bajar Plazo
@@ -264,13 +267,19 @@ export default function CobrosPage() {
         return;
       }
 
+      // Para adelanto de cobro, validar cuotas seleccionadas
+      if (tipoCobro === 'adelanto' && cuotasSeleccionadas.length === 0) {
+        toast({ title: 'Seleccione cuotas', description: 'Debe seleccionar al menos una cuota para adelanto.', variant: 'destructive' });
+        return;
+      }
+
       await api.post('/api/credit-payments/adelanto', {
         credit_id: selectedCreditId,
         tipo: tipoCobro,
         monto: parseFloat(monto),
         fecha: fecha,
-        // Enviamos la estrategia si es extraordinario, sino enviamos null
-        extraordinary_strategy: tipoCobro === 'extraordinario' ? extraordinaryStrategy : null
+        extraordinary_strategy: tipoCobro === 'extraordinario' ? extraordinaryStrategy : null,
+        cuotas: tipoCobro === 'adelanto' ? cuotasSeleccionadas : undefined
       });
 
       toast({ title: 'Éxito', description: `Abono registrado.` });
@@ -414,7 +423,21 @@ export default function CobrosPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Tipo de Cobro</label>
-                                <Select value={tipoCobro} onValueChange={setTipoCobro}>
+                                <Select value={tipoCobro} onValueChange={val => {
+                                  setTipoCobro(val);
+                                  // Si cambia a adelanto, cargar cuotas disponibles
+                                  if (val === 'adelanto' && selectedCreditId) {
+                                    api.get(`/api/credits/${selectedCreditId}`)
+                                      .then(res => {
+                                        // Filtrar cuotas pendientes
+                                        const cuotas = res.data.plan_de_pagos?.filter((c: any) => c.estado !== 'Pagado');
+                                        setCuotasDisponibles(cuotas || []);
+                                      });
+                                  } else {
+                                    setCuotasDisponibles([]);
+                                    setCuotasSeleccionadas([]);
+                                  }
+                                  }}>
                                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                     <SelectItem value="normal">Normal</SelectItem>
@@ -429,6 +452,34 @@ export default function CobrosPage() {
                                 <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} required />
                             </div>
                         </div>
+
+                        {/* Mostrar checkboxes de cuotas si es adelanto */}
+                        {tipoCobro === 'adelanto' && cuotasDisponibles.length > 0 && (
+                          <div className="bg-muted/50 p-3 rounded-md border border-dashed border-primary/50 space-y-2">
+                            <div className="text-sm font-medium mb-2">Seleccione cuotas a adelantar:</div>
+                            <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-2">
+                              {cuotasDisponibles.map((cuota: any) => (
+                                <label key={cuota.id} className="flex items-center gap-2 cursor-pointer py-1">
+                                  <input
+                                    type="checkbox"
+                                    value={cuota.id}
+                                    checked={cuotasSeleccionadas.includes(cuota.id)}
+                                    onChange={e => {
+                                      const id = cuota.id;
+                                      setCuotasSeleccionadas(sel =>
+                                        e.target.checked
+                                          ? [...sel, id]
+                                          : sel.filter(cid => cid !== id)
+                                      );
+                                    }}
+                                    className="h-4 w-4"
+                                  />
+                                  <span className="text-xs">Cuota #{cuota.numero_cuota} - Vence: {cuota.fecha_corte ? new Date(cuota.fecha_corte).toLocaleDateString() : ''} - ₡{Number(cuota.cuota || 0).toLocaleString()}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* --- LÓGICA VISUAL PARA ABONO EXTRAORDINARIO --- */}
                         {tipoCobro === 'extraordinario' && (

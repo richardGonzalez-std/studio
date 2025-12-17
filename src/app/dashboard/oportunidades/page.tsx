@@ -66,7 +66,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import api from "@/lib/axios";
 import { type Opportunity, type Lead, OPPORTUNITY_STATUSES, VERTICAL_OPTIONS, OPPORTUNITY_TYPES } from "@/lib/data";
 
-// --- Constants & Helpers (Inlined from dsf3/lib) ---
+// --- Constants & Helpers ---
 
 const CASE_STATUS_OPTIONS = ["Abierto", "En Progreso", "En Espera", "Cerrado"] as const;
 const CASE_CATEGORY_OPTIONS = ["Contenciosa", "No Contenciosa"] as const;
@@ -116,7 +116,7 @@ const normalizeOpportunityVertical = (vertical?: string | null) => {
 
 const formatOpportunityReference = (ref: string | number | null | undefined) => {
   if (!ref) return "-";
-  return String(ref).padStart(6, '0'); // Example formatting
+  return String(ref).padStart(6, '0');
 };
 
 const resolveEstimatedOpportunityAmount = (amount: any): number | null => {
@@ -159,7 +159,7 @@ const formatDate = (dateString?: string | null): string => {
 const generateAmparoReference = () => {
     const year = new Date().getFullYear().toString().slice(-2);
     const random = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-    return `${year}-000000-${random}-CO`; // Placeholder format
+    return `${year}-000000-${random}-CO`;
 };
 
 // --- Main Component ---
@@ -170,6 +170,7 @@ export default function DealsPage() {
   // Data State
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [users, setUsers] = useState<{ id: number; name: string }[]>([]); // <--- AGREGADO: Estado para usuarios
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
@@ -206,6 +207,26 @@ export default function DealsPage() {
     description: "",
   });
   const [isConvertingCase, setIsConvertingCase] = useState(false);
+
+  // Analisis Creation Dialog State
+  const [isAnalisisDialogOpen, setIsAnalisisDialogOpen] = useState(false);
+  const [analisisOpportunity, setAnalisisOpportunity] = useState<Opportunity | null>(null);
+
+  // Analisis Form State
+  const [analisisForm, setAnalisisForm] = useState({
+    reference: "",
+    title: "",
+    status: "Activo",
+    category: "Regular",
+    monto_credito: "",
+    leadId: "",
+    opportunityId: "",
+    assignedTo: "",
+    openedAt: new Date().toISOString().split('T')[0],
+    description: "",
+    divisa: "CRC",
+    plazo: "36",
+  });
 
   // Combobox state
   const [openVertical, setOpenVertical] = useState(false);
@@ -252,7 +273,7 @@ export default function DealsPage() {
   const fetchLeads = useCallback(async () => {
     try {
       setIsLoadingLeads(true);
-      const response = await api.get('/api/leads'); // Assuming this endpoint exists and returns all leads
+      const response = await api.get('/api/leads');
       const data = response.data.data || response.data;
       setLeads(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -262,10 +283,21 @@ export default function DealsPage() {
     }
   }, []);
 
+  // AGREGADO: Fetch Users para el select de responsables
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await api.get('/api/agents');
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchOpportunities();
     fetchLeads();
-  }, [fetchOpportunities, fetchLeads]);
+    fetchUsers(); // <--- AGREGADO
+  }, [fetchOpportunities, fetchLeads, fetchUsers]);
 
   // --- Form Logic ---
 
@@ -337,14 +369,14 @@ export default function DealsPage() {
         }
 
         const body: any = {
-            lead_cedula: selectedLead.cedula, // Using cedula as per studio requirement
+            lead_cedula: selectedLead.cedula,
             vertical: formValues.vertical,
             opportunity_type: formValues.opportunityType,
             status: formValues.status,
             amount: parseFloat(formValues.amount) || 0,
             expected_close_date: formValues.expectedCloseDate || null,
             comments: formValues.comments,
-            assigned_to_id: selectedLead.assigned_to_id // Inherit assignment
+            assigned_to_id: selectedLead.assigned_to_id
         };
 
         if (dialogState === "edit" && dialogOpportunity) {
@@ -442,7 +474,6 @@ export default function DealsPage() {
       setIsConvertingCase(true);
 
       try {
-          // Placeholder for case creation logic - adapting to what might be expected
           const body = {
               reference: convertCaseValues.reference,
               status: convertCaseValues.status,
@@ -466,6 +497,49 @@ export default function DealsPage() {
       }
   }, [convertCaseOpportunity, convertCaseValues, closeConvertCaseDialog, fetchOpportunities, toast]);
 
+
+  // --- Analisis Logic ---
+
+  const handleOpenAnalisisDialog = (opportunity: Opportunity) => {
+    setAnalisisOpportunity(opportunity);
+    setAnalisisForm({
+      reference: `ANAL-${opportunity.id}`,
+      title: opportunity.opportunity_type || "",
+      status: "Activo",
+      category: "Regular",
+      monto_credito: opportunity.amount ? String(opportunity.amount) : "",
+      leadId: opportunity.lead?.id ? String(opportunity.lead.id) : "",
+      opportunityId: String(opportunity.id),
+      assignedTo: "",
+      openedAt: new Date().toISOString().split('T')[0],
+      description: opportunity.comments || "",
+      divisa: "CRC",
+      plazo: "36",
+    });
+    setIsAnalisisDialogOpen(true);
+  };
+
+  const handleAnalisisFormChange = (field: string, value: string) => {
+    setAnalisisForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAnalisisSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/analisis', {
+        ...analisisForm,
+        monto_credito: parseFloat(analisisForm.monto_credito) || 0,
+        lead_id: parseInt(analisisForm.leadId),
+        opportunity_id: parseInt(analisisForm.opportunityId),
+        plazo: parseInt(analisisForm.plazo) || 36,
+      });
+      toast({ title: "Éxito", description: "Análisis creado correctamente." });
+      setIsAnalisisDialogOpen(false);
+      fetchOpportunities();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.response?.data?.message || error.message, variant: "destructive" });
+    }
+  };
 
   // --- Table Logic ---
 
@@ -901,6 +975,17 @@ export default function DealsPage() {
                             <TooltipContent>Exportar PDF</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" className="h-9 w-9 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 border-0" onClick={() => handleOpenAnalisisDialog(opportunity)}>
+                                <PlusCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Crear Análisis</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1080,6 +1165,90 @@ export default function DealsPage() {
                     <Button type="submit" disabled={isConvertingCase}>{isConvertingCase ? "Creando..." : "Crear Caso"}</Button>
                 </DialogFooter>
             </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analisis Creation Dialog */}
+      <Dialog open={isAnalisisDialogOpen} onOpenChange={setIsAnalisisDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Nuevo Análisis</DialogTitle>
+            <DialogDescription>Completa la información del análisis.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAnalisisSubmit} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="reference">Referencia</Label>
+                <Input id="reference" value={analisisForm.reference} onChange={e => handleAnalisisFormChange('reference', e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">Título</Label>
+                <Input id="title" value={analisisForm.title} onChange={e => handleAnalisisFormChange('title', e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <Select value={analisisForm.status} onValueChange={v => handleAnalisisFormChange('status', v)}>
+                  <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
+                  <SelectContent>
+                    {["Activo", "Mora", "Cerrado", "Legal"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría</Label>
+                <Select value={analisisForm.category} onValueChange={v => handleAnalisisFormChange('category', v)}>
+                  <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
+                  <SelectContent>
+                    {["Regular", "Micro-crédito", "Hipotecario", "Personal"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="divisa">Divisa</Label>
+                <Select value={analisisForm.divisa} onValueChange={v => handleAnalisisFormChange('divisa', v)}>
+                  <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
+                  <SelectContent>
+                    {["CRC", "USD", "EUR", "GBP"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monto">Monto</Label>
+                <Input id="monto" type="number" step="0.01" min="0" value={analisisForm.monto_credito} onChange={e => handleAnalisisFormChange('monto_credito', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plazo">Plazo (Meses)</Label>
+                <Select value={analisisForm.plazo} onValueChange={v => handleAnalisisFormChange('plazo', v)}>
+                  <SelectTrigger id="plazo"><SelectValue placeholder="Selecciona el plazo" /></SelectTrigger>
+                  <SelectContent>
+                    {["36", "60", "120"].map(p => <SelectItem key={p} value={p}>{p} meses</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* CAMBIO APLICADO: Select de Responsable */}
+              <div className="space-y-2">
+                <Label htmlFor="assignedTo">Responsable</Label>
+                <Select value={analisisForm.assignedTo} onValueChange={v => handleAnalisisFormChange('assignedTo', v)}>
+                  <SelectTrigger id="assignedTo"><SelectValue placeholder="Selecciona un responsable" /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="openedAt">Fecha Apertura</Label>
+                <Input id="openedAt" type="date" value={analisisForm.openedAt} onChange={e => handleAnalisisFormChange('openedAt', e.target.value)} />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea id="description" value={analisisForm.description} onChange={e => handleAnalisisFormChange('description', e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAnalisisDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

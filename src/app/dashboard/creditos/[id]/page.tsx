@@ -89,6 +89,7 @@ interface CreditPayment {
   estado: string;
   fecha_movimiento: string | null;
   movimiento_total: number;
+  movimiento_amortizacion?: number;
   // New fields
   linea?: string | null;
   fecha_inicio?: string | null;
@@ -128,6 +129,7 @@ interface PlanDePago {
   movimiento_interes_corriente: number;
   movimiento_interes_moratorio: number;
   movimiento_principal: number;
+  movimiento_amortizacion?: number;
   movimiento_caja_usuario: string | null;
   tipo_documento: string | null;
   numero_documento: string | null;
@@ -829,6 +831,7 @@ function CreditDetailClient({ id }: { id: string }) {
                         <TableHead className="whitespace-nowrap text-xs text-right">Mov. Póliza</TableHead>
                         <TableHead className="whitespace-nowrap text-xs text-right">Mov. Int. Corr.</TableHead>
                         <TableHead className="whitespace-nowrap text-xs text-right">Mov. Int. Mora.</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs text-right">Mov. Amortización</TableHead>
                         <TableHead className="whitespace-nowrap text-xs text-right">Mov. Principal</TableHead>
                         <TableHead className="whitespace-nowrap text-xs">Mov. Caja/Usuario</TableHead>
                         <TableHead className="whitespace-nowrap text-xs">Tipo Doc.</TableHead>
@@ -868,7 +871,9 @@ function CreditDetailClient({ id }: { id: string }) {
                             <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_poliza)}</TableCell>
                             <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_interes_corriente)}</TableCell>
                             <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_interes_moratorio)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_amortizacion)}</TableCell>
                             <TableCell className="text-xs text-right font-mono">{formatCurrency(payment.movimiento_principal)}</TableCell>
+                            
                             <TableCell className="text-xs">{payment.movimiento_caja_usuario || "-"}</TableCell>
                             <TableCell className="text-xs">{payment.tipo_documento || "-"}</TableCell>
                             <TableCell className="text-xs">{payment.numero_documento || "-"}</TableCell>

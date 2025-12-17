@@ -24,8 +24,8 @@ class Credit extends Model
         'tipo_credito',
         'numero_operacion',
         'monto_credito',
-        'saldo', // <--- AGREGADO: Vital para el recálculo de deuda
         'cuota',
+        'movimiento_amortizacion',
         'fecha_ultimo_pago',
         'garantia',
         'fecha_culminacion_credito',
@@ -43,8 +43,30 @@ class Credit extends Model
         'monto_credito' => 'decimal:2',
         'saldo' => 'decimal:2', // <--- AGREGADO: Para manejo preciso de moneda
         'cuota' => 'decimal:2',
+        'movimiento_amortizacion' => 'decimal:2',
         'tasa_anual' => 'decimal:2',
     ];
+
+    /**
+     * The attributes that should be appended to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'primera_deduccion',
+    ];
+
+    /**
+     * Get the date of the first deduction (primera_deduccion).
+     *
+     * @return string|null
+     */
+    public function getPrimeraDeduccionAttribute(): ?string
+    {
+        // Assuming the first deduction is the earliest planDePagos with numero_cuota > 0
+        $plan = $this->planDePagos()->where('numero_cuota', '>', 0)->orderBy('fecha_pago')->first();
+        return $plan ? optional($plan->fecha_pago)->toDateString() : null;
+    }
 
     protected static function booted()
     {

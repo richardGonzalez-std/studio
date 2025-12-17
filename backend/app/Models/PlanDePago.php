@@ -40,6 +40,7 @@ class PlanDePago extends Model
         'movimiento_interes_corriente',
         'movimiento_interes_moratorio',
         'movimiento_principal',
+        'movimiento_amortizacion',
         'movimiento_caja_usuario',
         'tipo_documento',
         'numero_documento',
@@ -66,6 +67,7 @@ class PlanDePago extends Model
         'movimiento_interes_corriente' => 'decimal:2',
         'movimiento_interes_moratorio' => 'decimal:2',
         'movimiento_principal' => 'decimal:2',
+        'movimiento_amortizacion' => 'decimal:2',
     ];
 
     public function credit()
