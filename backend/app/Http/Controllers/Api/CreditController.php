@@ -137,7 +137,7 @@ class CreditController extends Controller
         // Fecha de cobro de la primera cuota (Cuota #1)
         $fechaCobro = $credit->fecha_primera_cuota
             ? Carbon::parse($credit->fecha_primera_cuota)
-            : ($credit->opened_at ? Carbon::parse($credit->opened_at)->addMonth() : now()->addMonth());
+            : ($credit->opened_at ? Carbon::parse($credit->opened_at)->addMonths(2) : now()->addMonths(2));
 
         // 3. Bucle de Generación (Empezamos en 1, la 0 ya existe por el Modelo)
         for ($i = 1; $i <= $plazo; $i++) {
@@ -154,7 +154,7 @@ class CreditController extends Controller
                 'credit_id' => $credit->id,
                 'numero_cuota' => $i,
                 'linea' => $credit->category ?? '1',
-                'proceso' => 'Generado',
+                'proceso' => ($credit->opened_at ?? now())->format('Ym'),
                 'fecha_inicio' => $fechaCobro->copy()->subMonth(),
                 'fecha_corte' => $fechaCobro->copy(),
                 'fecha_pago' => null,
@@ -182,11 +182,7 @@ class CreditController extends Controller
                 'movimiento_amortizacion' => 0,
                 'concepto' => 'Cuota Mensual',
             ]);
-            // Guardar la fecha de la primera cuota para el campo primera_deduccion
-            if ($i === 1) {
-                $credit->primera_deduccion = $fechaCobro->copy();
-                $credit->save();
-            }
+            // Ya no se guarda primera_deduccion en el modelo Credit
             $saldoPendiente = $nuevoSaldo;
             $fechaCobro->addMonth();
         }

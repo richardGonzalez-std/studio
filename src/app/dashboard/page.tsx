@@ -146,12 +146,23 @@ function ProjectProgressChart() {
  */
 export default function DashboardPage() {
   // Calculamos el saldo total de la cartera sumando los saldos de todos los créditos.
-  const totalBalance = credits.reduce((sum, credit) => sum + credit.balance, 0);
-  const totalArrears = credits.filter(c => c.status === 'En mora').reduce((sum, credit) => sum + credit.balance, 0);
-  const salesOfTheMonth = credits.filter(c => new Date(c.creationDate).getMonth() === new Date().getMonth()).reduce((sum, c) => sum + c.amount, 0);
-  const interestReceived = payments.reduce((sum, p) => sum + p.amount, 0) * 0.2; // Simulación
+  const totalBalance = credits.reduce((sum, credit) => sum + (credit.monto_credito ?? 0), 0);
+  const totalArrears = credits.filter(c => c.status === 'En mora').reduce((sum, credit) => sum + (credit.monto_credito ?? 0), 0);
+  // Use monto_credito for sales, and check opened_at is defined
+  const salesOfTheMonth = credits
+    .filter(c => c.opened_at && new Date(c.opened_at).getMonth() === new Date().getMonth())
+    .reduce((sum, c) => sum + (c.monto_credito ?? 0), 0);
+  // Use monto for Payment
+  const interestReceived = payments.reduce((sum, p) => sum + (p.monto ?? 0), 0) * 0.2; // Simulación
   const expensesOfTheMonth = 12500000; // Simulación
-  const newCredits = credits.filter(c => new Date(c.creationDate) > new Date(new Date().setDate(new Date().getDate() - 30))).length;
+  // Use opened_at for new credits in last 30 days
+  const newCredits = credits.filter(c => {
+    if (!c.opened_at) return false;
+    const openedDate = new Date(c.opened_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return openedDate > thirtyDaysAgo;
+  }).length;
 
 
   return (

@@ -51,8 +51,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+
 import api from "@/lib/axios";
 import { credits as mockCredits } from "@/lib/data";
+
+interface DeductoraOption {
+  id: string | number;
+  nombre: string;
+}
+  
 
 interface ClientOption {
   id: string;
@@ -90,7 +97,7 @@ interface ClientOption {
   telefono3?: string;
   institucion_labora?: string;
   departamento_cargo?: string;
-  deductora_id?: string | number;
+  deductora_id?: number | null;
   lead_status_id?: number;
   assigned_to_id?: number;
   person_type_id?: number;
@@ -123,7 +130,7 @@ interface CreditPayment {
   id: number;
   credit_id: number;
   numero_cuota: number;
-  fecha_cuota: string;
+  fecha_corte: string;
   fecha_pago: string | null;
   cuota: number;
   cargos: number;
@@ -169,10 +176,9 @@ interface CreditItem {
   fecha_culminacion_credito?: string | null;
   plazo?: number | null;
   cuotas_atrasadas?: number | null;
-  deductora?: { id: number; nombre: string } | null;
+  deductora_id: number | null;
   divisa?: string | null;
   linea?: string | null;
-  primera_deduccion?: string | null;
   saldo?: number | null;
   proceso?: string | null;
   documento_id?: string | null;
@@ -258,7 +264,8 @@ function formatDateTime(dateString?: string | null): string {
 
 export default function CreditsPage() {
   const { toast } = useToast();
-
+  const [deductoras, setDeductoras] = useState<DeductoraOption[]>([]);
+  
   const [credits, setCredits] = useState<CreditItem[]>([]);
   const [leads, setLeads] = useState<ClientOption[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityOption[]>([]);
@@ -333,7 +340,25 @@ export default function CreditsPage() {
 
   // Mock permission for now
   const canDownloadDocuments = true;
-
+  const fetchDeductoras = useCallback(async () => {
+    try {
+      const response = await api.get('/api/deductoras');
+      let data = response.data;
+      if (!Array.isArray(data)) {
+        // Try to extract array if wrapped in {data: [...]}
+        data = data.data || [];
+      }
+      if (!Array.isArray(data)) {
+        data = [];
+      }
+      setDeductoras(data);
+      console.log('Deductoras loaded:', data);
+    } catch (error) {
+      setDeductoras([]);
+      console.error("Error fetching deductoras:", error);
+    }
+  }, []);
+    
   const fetchCredits = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -378,7 +403,7 @@ export default function CreditsPage() {
       setIsLoadingLeads(true);
       const response = await api.get('/api/leads');
       const data = response.data.data || response.data;
-      setLeads(data.map((l: any) => ({ id: l.id, name: l.name, email: l.email, cedula: l.cedula })));
+      setLeads(data.map((l: any) => ({ id: l.id, name: l.name, email: l.email, cedula: l.cedula, deductora_id:l.deductora_id })));
     } catch (error) {
       console.error("Error fetching leads:", error);
     } finally {
@@ -420,7 +445,8 @@ export default function CreditsPage() {
     fetchLeads();
     fetchOpportunities();
     fetchUsers();
-  }, [fetchCredits, fetchLeads, fetchOpportunities, fetchUsers]);
+    fetchDeductoras();
+  }, [fetchCredits, fetchLeads, fetchOpportunities, fetchUsers, fetchDeductoras]);
 
   // Populate lead objects on credits based on lead_id
   useEffect(() => {
@@ -687,7 +713,6 @@ export default function CreditsPage() {
       new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.cuota || 0),
       new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(credit.saldo || 0),
       "0.00", // Morosidad
-      credit.primera_deduccion || "01/2022",
       new Date().toISOString().split('T')[0], // Ult Mov
       credit.fecha_culminacion_credito || "2032-01-01",
       credit.status || "NORMAL"
@@ -729,7 +754,7 @@ export default function CreditsPage() {
 
       const paymentRows = credit.plan_de_pagos.map(p => [
         p.numero_cuota,
-        formatDate(p.fecha_cuota),
+        formatDate(p.fecha_corte),
         formatDate(p.fecha_pago),
         new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.cuota),
         new Intl.NumberFormat('es-CR', { style: 'decimal', minimumFractionDigits: 2 }).format(p.interes_corriente),
@@ -852,7 +877,6 @@ export default function CreditsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Estado</TableHead>
-                        <TableHead>ID Documento</TableHead>
                         <TableHead>Nombre</TableHead>
                         <TableHead>No. Operación</TableHead>
                         <TableHead>Divisa</TableHead>
@@ -875,14 +899,15 @@ export default function CreditsPage() {
                       {getCreditsForTab(tab.value).map((credit) => {
                         // --- LÓGICA CALCULADA EN FRONTEND ---
                         const pagosOrdenados = credit.plan_de_pagos?.length
-                          ? [...credit.plan_de_pagos].sort((a, b) => a.numero_cuota - b.numero_cuota)
+                          ? [...credit.plan_de_pagos].filter((e)=>e.cuota > 0).sort((a, b) => a.numero_cuota - b.numero_cuota)
                           : [];
 
-                        // 1. Primera Deducción: De cabecera o la primera cuota
-                        const fechaInicio = credit.primera_deduccion || (pagosOrdenados.length > 0 ? pagosOrdenados[0].fecha_cuota : null);
+
+                        // 1. Primera Deducción: Tomar siempre la primera cuota del plan_de_pagos
+                        const fechaInicio = pagosOrdenados.length > 0 ? pagosOrdenados[0].fecha_corte : null;
 
                         // 2. Vencimiento: De cabecera o la última cuota
-                        const fechaFin = credit.fecha_culminacion_credito || (pagosOrdenados.length > 0 ? pagosOrdenados[pagosOrdenados.length - 1].fecha_cuota : null);
+                        const fechaFin = credit.fecha_culminacion_credito ;
 
                         // 3. Tasa: De cabecera o del primer pago
                         const tasa = credit.tasa_anual || (pagosOrdenados.length > 0 ? pagosOrdenados[0].tasa_actual : null);
@@ -894,7 +919,6 @@ export default function CreditsPage() {
                         return (
                           <TableRow key={credit.id}>
                             <TableCell><Badge variant="secondary">{credit.status}</Badge></TableCell>
-                            <TableCell>{credit.documento_id || "-"}</TableCell>
                             <TableCell>{credit.client?.name || credit.lead?.name || "-"}</TableCell>
                             <TableCell className="font-medium">
                               <Link href={`/dashboard/creditos/${credit.id}`} className="hover:underline text-primary">
@@ -916,7 +940,9 @@ export default function CreditsPage() {
                             <TableCell>{tasa ? `${tasa}%` : "-"}</TableCell>
 
                             <TableCell>{credit.cuotas_atrasadas || 0}</TableCell>
-                            <TableCell>{credit.deductora?.nombre || "-"}</TableCell>
+                            <TableCell>
+                                {deductoras.find(d => d.id === credit.lead?.deductora_id)?.nombre || "-"}
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center gap-2">
                                 <Button
@@ -1219,6 +1245,7 @@ export default function CreditsPage() {
         credit={documentsCredit}
         onClose={() => setIsDocumentsOpen(false)}
         canDownloadDocuments={canDownloadDocuments}
+        deductoras={deductoras}
       />
 
       {/* Detail Dialog */}
@@ -1244,7 +1271,15 @@ export default function CreditsPage() {
   );
 }
 
-function CreditDocumentsDialog({ isOpen, credit, onClose, canDownloadDocuments }: any) {
+interface CreditDocumentsDialogProps {
+  isOpen: boolean;
+  credit: CreditItem | null;
+  onClose: () => void;
+  canDownloadDocuments: boolean;
+  deductoras: DeductoraOption[];
+}
+
+function CreditDocumentsDialog({ isOpen, credit, onClose, canDownloadDocuments, deductoras }: CreditDocumentsDialogProps) {
   const { toast } = useToast();
   const [documents, setDocuments] = useState<CreditDocument[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -1327,12 +1362,21 @@ function CreditDocumentsDialog({ isOpen, credit, onClose, canDownloadDocuments }
               {documents.map(doc => (
                 <TableRow key={doc.id}>
                   <TableCell>
-                    {doc.url ? <a href={doc.url} target="_blank" className="text-primary hover:underline">{doc.name}</a> : doc.name}
+                    {(() => {
+                      // 1. AGREGA ESTA LÍNEA: Si credit es null, retorna guion y no ejecutes lo demás
+                      if (!credit) return "-"; 
+
+                      // 2. Ahora TypeScript sabe que credit existe, pero mantén los '?' por seguridad en lead/client
+                      const dedId = credit.lead?.deductora_id || credit.client?.deductora_id || credit.deductora_id;
+                      
+                      if (!dedId) return "-";
+                      
+                      const found = deductoras.find(d => String(d.id) === String(dedId));
+                      return found ? found.nombre : dedId;
+                    })()}
                   </TableCell>
-                  <TableCell>{doc.notes}</TableCell>
-                  <TableCell>
                     <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id)} className="text-destructive">Eliminar</Button>
-                  </TableCell>
+                  
                 </TableRow>
               ))}
             </TableBody>

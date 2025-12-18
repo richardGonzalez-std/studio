@@ -205,9 +205,6 @@ export default function LeadDetailPage() {
                     <span>volver al CRM</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsOpportunityDialogOpen(true)}>
-                        Crear oportunidad
-                    </Button>
                     {isEditMode && (
                         <>
                             <Button variant="ghost" onClick={() => router.push(`/dashboard/leads/${id}?mode=view`)}>Cancelar</Button>
@@ -882,7 +879,7 @@ export default function LeadDetailPage() {
 
                 {/* Side Panel */}
                 {isPanelVisible && (
-                    <div className="space-y-6 lg:col-span-2">
+                    <div className="space-y-1 lg:col-span-2 ">
                         <CaseChat conversationId={id} />
                     </div>
                 )}

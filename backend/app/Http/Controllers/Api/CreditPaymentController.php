@@ -325,7 +325,14 @@ class CreditPaymentController extends Controller
         $saldoAnteriorSnapshot = 0;
         $saldoCreditoAntes = $credit->saldo;
 
-        foreach ($cuotas as $cuota) {
+        $carryInteres = 0.0;
+        $carryAmort = 0.0;
+        $cuotasArr = $cuotas->all();
+        $cuotasCount = count($cuotasArr);
+        // Calculate saldoLeft as monto_credito minus sum of all payments
+        $totalPagos = CreditPayment::where('credit_id', $credit->id)->sum('monto');
+        $saldoLeft = $credit->monto_credito - $totalPagos;
+        foreach ($cuotasArr as $i => $cuota) {
             if ($dineroDisponible <= 0.005) break;
 
             if (!$primerCuotaAfectada) {
@@ -335,9 +342,9 @@ class CreditPaymentController extends Controller
 
             // A. Pendientes
             $pendienteMora = max(0.0, $cuota->interes_moratorio - $cuota->movimiento_interes_moratorio);
-            $pendienteInteres = max(0.0, $cuota->interes_corriente - $cuota->movimiento_interes_corriente);
+            $pendienteInteres = max(0.0, $cuota->interes_corriente - $cuota->movimiento_interes_corriente) + $carryInteres;
             $pendienteCargos = max(0.0, ($cuota->cargos + $cuota->poliza) - ($cuota->movimiento_cargos + $cuota->movimiento_poliza));
-            $pendientePrincipal = max(0.0, $cuota->amortizacion - $cuota->movimiento_principal);
+            $pendientePrincipal = max(0.0, $cuota->amortizacion - $cuota->movimiento_principal) + $carryAmort;
 
             // B. Aplicar Pagos
             $pagoMora = min($dineroDisponible, $pendienteMora);
@@ -362,8 +369,23 @@ class CreditPaymentController extends Controller
             if ($dineroDisponible > 0) {
                 $pagoPrincipal = min($dineroDisponible, $pendientePrincipal);
                 $cuota->movimiento_principal += $pagoPrincipal;
-
                 $dineroDisponible -= $pagoPrincipal;
+            }
+
+            // Update saldo_left after payment for this cuota
+            $saldoLeft = max(0.0, $saldoLeft - $cuota->movimiento_principal);
+            $cuota->movimiento_principal = $saldoLeft;
+
+            // Calculate carry-over for next cuota (only for interes_corriente and amortizacion)
+            $leftInteres = $pendienteInteres - $pagoInteres;
+            $leftAmort = $pendientePrincipal - $pagoPrincipal;
+            // Only carry to next cuota, not last
+            if ($i < $cuotasCount - 1) {
+                $carryInteres = max(0.0, $leftInteres);
+                $carryAmort = max(0.0, $leftAmort);
+            } else {
+                $carryInteres = 0.0;
+                $carryAmort = 0.0;
             }
 
             $totalPagadoEnEstaTransaccion = $pagoMora + $pagoInteres + $pagoCargos + $pagoPrincipal;

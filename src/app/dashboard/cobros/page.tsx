@@ -398,7 +398,7 @@ export default function CobrosPage() {
 
                         <div>
                           <label className="block text-sm font-medium mb-1">Crédito Asociado</label>
-                          <Select 
+                          <Select   
                             value={selectedCreditId} 
                             onValueChange={setSelectedCreditId}
                             disabled={!selectedLeadId}
