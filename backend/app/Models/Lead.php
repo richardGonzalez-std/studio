@@ -61,6 +61,7 @@ class Lead extends Person
         'tipo_sociedad',
         'nombramientos',
         'estado_puesto',
+        'assigned_to_id',
     ];
 
     protected $casts = [

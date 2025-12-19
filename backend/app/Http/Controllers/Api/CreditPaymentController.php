@@ -157,7 +157,7 @@ class CreditPaymentController extends Controller
                 PlanDePago::where('credit_id', $credit->id)
                     ->where('numero_cuota', '>=', $numeroCuotaInicio)
                     ->delete();
-                $credit->estado = 'Finalizado';
+                $credit->status = 'Finalizado';
                 $credit->save();
             }
 
@@ -325,7 +325,15 @@ class CreditPaymentController extends Controller
         $saldoAnteriorSnapshot = 0;
         $saldoCreditoAntes = $credit->saldo;
 
-        foreach ($cuotas as $cuota) {
+        $carryInteres = 0.0;
+        $carryAmort = 0.0;
+        $cuotasArr = $cuotas->all();
+        $cuotasCount = count($cuotasArr);
+
+        // --- CORRECCIÓN: Variable para acumular solo lo amortizado HOY ---
+        $capitalAmortizadoHoy = 0.0;
+
+        foreach ($cuotasArr as $i => $cuota) {
             if ($dineroDisponible <= 0.005) break;
 
             if (!$primerCuotaAfectada) {
@@ -335,9 +343,9 @@ class CreditPaymentController extends Controller
 
             // A. Pendientes
             $pendienteMora = max(0.0, $cuota->interes_moratorio - $cuota->movimiento_interes_moratorio);
-            $pendienteInteres = max(0.0, $cuota->interes_corriente - $cuota->movimiento_interes_corriente);
+            $pendienteInteres = max(0.0, $cuota->interes_corriente - $cuota->movimiento_interes_corriente) + $carryInteres;
             $pendienteCargos = max(0.0, ($cuota->cargos + $cuota->poliza) - ($cuota->movimiento_cargos + $cuota->movimiento_poliza));
-            $pendientePrincipal = max(0.0, $cuota->amortizacion - $cuota->movimiento_principal);
+            $pendientePrincipal = max(0.0, $cuota->amortizacion - $cuota->movimiento_principal) + $carryAmort;
 
             // B. Aplicar Pagos
             $pagoMora = min($dineroDisponible, $pendienteMora);
@@ -362,8 +370,22 @@ class CreditPaymentController extends Controller
             if ($dineroDisponible > 0) {
                 $pagoPrincipal = min($dineroDisponible, $pendientePrincipal);
                 $cuota->movimiento_principal += $pagoPrincipal;
-
                 $dineroDisponible -= $pagoPrincipal;
+
+                // ACUMULAR PARA EL DESCUENTO DE SALDO
+                $capitalAmortizadoHoy += $pagoPrincipal;
+            }
+
+            // Calculate carry-over for next cuota
+            $leftInteres = $pendienteInteres - $pagoInteres;
+            $leftAmort = $pendientePrincipal - $pagoPrincipal;
+            // Only carry to next cuota, not last
+            if ($i < $cuotasCount - 1) {
+                $carryInteres = max(0.0, $leftInteres);
+                $carryAmort = max(0.0, $leftAmort);
+            } else {
+                $carryInteres = 0.0;
+                $carryAmort = 0.0;
             }
 
             $totalPagadoEnEstaTransaccion = $pagoMora + $pagoInteres + $pagoCargos + $pagoPrincipal;
@@ -385,10 +407,9 @@ class CreditPaymentController extends Controller
             $cuota->save();
         }
 
-        // Actualizar Saldo Global (restando lo amortizado en esta txn)
-        // Nota: para el pago regular recalculamos sumando movimientos porque es incremental
-        $totalAmortizadoHistorico = $credit->planDePagos()->sum('movimiento_principal');
-        $credit->saldo = max(0.0, $credit->monto_credito - $totalAmortizadoHistorico);
+        // --- CORRECCIÓN: Actualizar Saldo de forma INCREMENTAL ---
+        // Restamos lo que se amortizó HOY al saldo que tenía el crédito ANTES de la transacción
+        $credit->saldo = max(0.0, $credit->saldo - $capitalAmortizadoHoy);
         $credit->save();
 
         // Recibo

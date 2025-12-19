@@ -52,9 +52,6 @@ class Credit extends Model
      *
      * @var array<int, string>
      */
-    protected $appends = [
-        'primera_deduccion',
-    ];
 
     /**
      * Get the date of the first deduction (primera_deduccion).
@@ -82,7 +79,7 @@ class Credit extends Model
                 'numero_cuota' => 0,
                 'proceso' => ($credit->opened_at ?? now())->format('Ym'),
                 'fecha_inicio' => $credit->opened_at ?? now(),
-                'fecha_corte' => $credit->opened_at ?? now(),
+                'fecha_corte' => null,
                 'fecha_pago' => null,
                 'tasa_actual' => $credit->tasa_anual ?? 33.5,
                 'plazo_actual' => $credit->plazo ?? 0,

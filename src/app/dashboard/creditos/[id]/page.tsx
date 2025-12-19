@@ -1,6 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, use } from 'react';
+// --- Agent Option ---
+interface AgentOption {
+  id: number;
+  name: string;
+}
 import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -106,7 +111,7 @@ interface PlanDePago {
   linea: string | null;
   numero_cuota: number;
   proceso: string | null;
-  fecha_inicio: string | null;
+  fecha_inicio: Date | null;
   fecha_corte: string | null;
   fecha_pago: string | null;
   tasa_actual: number;
@@ -154,7 +159,6 @@ interface CreditItem {
   title: string;
   status: string | null;
   category: string | null;
-  assigned_to: string | null;
   progress: number;
   opened_at: string | null;
   description: string | null;
@@ -164,6 +168,8 @@ interface CreditItem {
     name: string;
     institucion_labora?: string | null;
     documents?: CreditDocument[];
+    deductora_id?: number,
+    assigned_to_id: number,
   } | null;
   opportunity_id: string | null;
   client?: ClientOption | null;
@@ -213,6 +219,11 @@ function formatCurrency(amount?: number | null): string {
 
 // --- Main Component ---
 
+interface DeductoraOption {
+  id: string | number;
+  nombre: string;
+}
+
 function CreditDetailClient({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -229,6 +240,34 @@ function CreditDetailClient({ id }: { id: string }) {
   // Combobox/Select Data
   const [users, setUsers] = useState<{id: number, name: string}[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  // Agents (for Responsable display)
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+  // Deductoras
+  const [deductoras, setDeductoras] = useState<DeductoraOption[]>([]);
+  const [isLoadingDeductoras, setIsLoadingDeductoras] = useState(true);
+  // Fetch Deductoras
+  const fetchDeductoras = async () => {
+    try {
+      setIsLoadingDeductoras(true);
+      const response = await api.get('/api/deductoras');
+      let data = response.data;
+      if (!Array.isArray(data)) {
+        data = data.data || [];
+      }
+      if (!Array.isArray(data)) {
+        data = [];
+      }
+      setDeductoras(data);
+    } catch (error) {
+      setDeductoras([]);
+      console.error("Error fetching deductoras:", error);
+    } finally {
+      setIsLoadingDeductoras(false);
+    }
+  };
+
 
   // --- Fetch Data ---
 
@@ -269,6 +308,29 @@ function CreditDetailClient({ id }: { id: string }) {
       }
     };
     fetchUsers();
+    fetchDeductoras();
+
+    // Fetch agents for Responsable display
+    const fetchAgents = async () => {
+      try {
+        setIsLoadingAgents(true);
+        const response = await api.get('/api/agents');
+        let data = response.data;
+        if (!Array.isArray(data)) {
+          data = data.data || [];
+        }
+        if (!Array.isArray(data)) {
+          data = [];
+        }
+        setAgents(data);
+      } catch (error) {
+        setAgents([]);
+        console.error("Error fetching agents:", error);
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+    fetchAgents();
   }, []);
 
   // --- Handlers: Edit ---
@@ -433,21 +495,7 @@ function CreditDetailClient({ id }: { id: string }) {
                             )}
                           </div>
                           <div className="space-y-2">
-                            <Label>Tipo de Crédito</Label>
-                            {isEditMode ? (
-                              <Input
-                                value={formData.tipo_credito || ""}
-                                onChange={(e) => handleInputChange("tipo_credito", e.target.value)}
-                                placeholder="Tipo de crédito"
-                              />
-                            ) : (
-                              <p className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-                                {credit.tipo_credito || "-"}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Categoría</Label>
+                            <Label>Tipo de credito</Label>
                             {isEditMode ? (
                               <Select value={formData.category || ""} onValueChange={(value) => handleInputChange("category", value)}>
                                 <SelectTrigger>
@@ -559,7 +607,13 @@ function CreditDetailClient({ id }: { id: string }) {
                           <div className="space-y-2">
                             <Label>Entidad Deductora</Label>
                             <p className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-                              {credit.deductora?.nombre || "-"}
+                              {(() => {
+                                // Always use lead's deductora_id for lookup
+                                const idDeductora = credit.lead?.deductora_id;
+                                if (!idDeductora) return "-";
+                                const encontrada = deductoras.find(d => String(d.id) === String(idDeductora));
+                                return encontrada ? encontrada.nombre : idDeductora;
+                              })()}
                             </p>
                           </div>
                         </div>
@@ -574,12 +628,24 @@ function CreditDetailClient({ id }: { id: string }) {
                             {isEditMode ? (
                               <Input
                                 type="date"
-                                value={formData.opened_at ? new Date(formData.opened_at).toISOString().split('T')[0] : ""}
+                                value={(() => {
+                                  const f = formData.plan_de_pagos?.find(p => p.numero_cuota === 0)?.fecha_inicio;
+                                  if (f) {
+                                    return f instanceof Date ? f.toISOString().split('T')[0] : String(f).split('T')[0];
+                                  }
+                                  return new Date(credit.opened_at || "").toISOString().split('T')[0];
+                                })()}
                                 onChange={(e) => handleInputChange("opened_at", e.target.value)}
                               />
                             ) : (
                               <p className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-                                {formatDate(credit.opened_at)}
+                                {(() => {
+                                  const f = formData.plan_de_pagos?.find(p => p.numero_cuota === 0)?.fecha_inicio;
+                                  if (f) {
+                                    return f instanceof Date ? f.toISOString().split('T')[0] : String(f).split('T')[0];
+                                  }
+                                  return new Date(credit.opened_at || "").toISOString().split('T')[0];
+                                })()}
                               </p>
                             )}
                           </div>
@@ -685,19 +751,19 @@ function CreditDetailClient({ id }: { id: string }) {
                           <div className="space-y-2">
                             <Label>Responsable</Label>
                             {isEditMode ? (
-                              <Select value={formData.assigned_to || ""} onValueChange={(value) => handleInputChange("assigned_to", value)}>
+                              <Select value={String(formData.lead?.assigned_to_id ?? "")} onValueChange={(value) => handleInputChange("assigned_to_id" as any, value === "" ? "" : parseInt(value, 10))}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Seleccionar responsable" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {users.map(user => (
-                                    <SelectItem key={user.id} value={user.name}>{user.name}</SelectItem>
+                                    <SelectItem key={user.id} value={String(user.name)}>{user.name}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             ) : (
                               <p className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-                                {credit.assigned_to || "-"}
+                                {agents.find(a => a.id === (formData as any).assigned_to_id)?.name} 
                               </p>
                             )}
                           </div>
@@ -845,7 +911,7 @@ function CreditDetailClient({ id }: { id: string }) {
                           <TableRow key={payment.id} className="hover:bg-muted/50">
                             <TableCell className="text-xs text-center">{payment.numero_cuota}</TableCell>
                             <TableCell className="text-xs">{payment.proceso || "-"}</TableCell>
-                            <TableCell className="text-xs">{formatDate(payment.fecha_inicio)}</TableCell>
+                            <TableCell className="text-xs">{formatDate(payment.fecha_inicio ? new Date(payment.fecha_inicio).toISOString() : null)}</TableCell>
                             <TableCell className="text-xs">{formatDate(payment.fecha_corte)}</TableCell>
                             <TableCell className="text-xs">{formatDate(payment.fecha_pago)}</TableCell>
                             <TableCell className="text-xs text-center">{payment.tasa_actual || "-"}</TableCell>

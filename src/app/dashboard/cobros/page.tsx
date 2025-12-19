@@ -398,7 +398,7 @@ export default function CobrosPage() {
 
                         <div>
                           <label className="block text-sm font-medium mb-1">Crédito Asociado</label>
-                          <Select 
+                          <Select   
                             value={selectedCreditId} 
                             onValueChange={setSelectedCreditId}
                             disabled={!selectedLeadId}
@@ -410,7 +410,7 @@ export default function CobrosPage() {
                               {availableCredits.length > 0 ? (
                                 availableCredits.map((c: any) => (
                                   <SelectItem key={c.id} value={String(c.id)}>
-                                    {c.reference || c.numero_operacion || `ID: ${c.id}`} - Saldo: ₡{Number(c.saldo || 0).toLocaleString()}
+                                    {c.reference || c.numero_operacion || `ID: ${c.id}`} - Saldo: ₡{Number(c.saldo ).toLocaleString()}
                                   </SelectItem>
                                 ))
                               ) : (

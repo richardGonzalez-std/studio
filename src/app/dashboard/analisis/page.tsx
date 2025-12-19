@@ -1,7 +1,13 @@
 'use client';
 
 import api from '@/lib/axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Opportunity, Lead } from '@/lib/data';
 
 // 1. DEFINICIÓN DE TIPOS (Interfaces)
@@ -27,6 +33,21 @@ export default function AnalisisPage() {
   const [error, setError] = useState<string | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+
+  // Credit creation dialog state
+  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
+  const [creditForm, setCreditForm] = useState({
+    reference: '',
+    title: '',
+    status: 'Activo',
+    category: 'Regular',
+    monto_credito: '',
+    leadId: '',
+    description: '',
+    divisa: 'CRC',
+    plazo: '36',
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   // 2. FETCH DE DATOS (Analisis, Oportunidades, Leads)
   useEffect(() => {
@@ -112,6 +133,7 @@ export default function AnalisisPage() {
               
               <th className="px-6 py-3">Monto</th>
               <th className="px-6 py-3">Estado</th>
+              <th className="px-6 py-3 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -161,6 +183,172 @@ export default function AnalisisPage() {
                       {item.status}
                     </span>
                   </td>
+                  {/* Acciones */}
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                        title="Crear Crédito"
+                        onClick={() => {
+                          setCreditForm({
+                            reference: '',
+                            title: '',
+                            status: 'Activo',
+                            category: 'Regular',
+                            monto_credito: '',
+                            leadId: item.lead?.id ? String(item.lead.id) : '',
+                            description: '',
+                            divisa: 'CRC',
+                            plazo: '36',
+                          });
+                          setIsCreditDialogOpen(true);
+                        }}
+                      >
+                        Crear Crédito
+                      </Button>
+                    </div>
+                  </td>
+                      {/* Dialog for creating credit */}
+                      <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Nuevo Crédito</DialogTitle>
+                            <DialogDescription>Completa la información del crédito.</DialogDescription>
+                          </DialogHeader>
+                          <form
+                            className="space-y-6"
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              setIsSaving(true);
+                              try {
+                                await api.post('/api/credits', {
+                                  reference: creditForm.reference,
+                                  title: creditForm.title,
+                                  status: creditForm.status,
+                                  category: creditForm.category,
+                                  monto_credito: parseFloat(creditForm.monto_credito) || 0,
+                                  lead_id: parseInt(creditForm.leadId),
+                                  description: creditForm.description,
+                                  divisa: creditForm.divisa,
+                                  plazo: parseInt(creditForm.plazo) || 36,
+                                });
+                                setIsCreditDialogOpen(false);
+                                // Optionally, show a toast or refresh credits/analisis
+                              } catch (err) {
+                                // Optionally, show error toast
+                                alert('Error al crear crédito');
+                              } finally {
+                                setIsSaving(false);
+                              }
+                            }}
+                          >
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor="reference">Referencia</Label>
+                                <Input
+                                  id="reference"
+                                  placeholder="Ej: CRED-ABC12345"
+                                  value={creditForm.reference}
+                                  onChange={e => setCreditForm(f => ({ ...f, reference: e.target.value }))}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="title">Título</Label>
+                                <Input
+                                  id="title"
+                                  placeholder="Crédito Hipotecario..."
+                                  value={creditForm.title}
+                                  onChange={e => setCreditForm(f => ({ ...f, title: e.target.value }))}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="status">Estado</Label>
+                                <Select value={creditForm.status} onValueChange={v => setCreditForm(f => ({ ...f, status: v }))}>
+                                  <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Activo">Activo</SelectItem>
+                                    <SelectItem value="Mora">Mora</SelectItem>
+                                    <SelectItem value="Cerrado">Cerrado</SelectItem>
+                                    <SelectItem value="Legal">Legal</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="category">Categoría</Label>
+                                <Select value={creditForm.category} onValueChange={v => setCreditForm(f => ({ ...f, category: v }))}>
+                                  <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Regular">Regular</SelectItem>
+                                    <SelectItem value="Micro-crédito">Micro-crédito</SelectItem>
+                                    <SelectItem value="Hipotecario">Hipotecario</SelectItem>
+                                    <SelectItem value="Personal">Personal</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="divisa">Divisa</Label>
+                                <Select value={creditForm.divisa} onValueChange={v => setCreditForm(f => ({ ...f, divisa: v }))}>
+                                  <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="CRC">CRC - Colón Costarricense</SelectItem>
+                                    <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
+                                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="monto">Monto</Label>
+                                <Input
+                                  id="monto"
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  value={creditForm.monto_credito}
+                                  onChange={e => setCreditForm(f => ({ ...f, monto_credito: e.target.value }))}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="plazo">Plazo (Meses)</Label>
+                                <Select value={creditForm.plazo} onValueChange={v => setCreditForm(f => ({ ...f, plazo: v }))}>
+                                  <SelectTrigger id="plazo"><SelectValue placeholder="Selecciona el plazo" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="36">36 meses</SelectItem>
+                                    <SelectItem value="60">60 meses</SelectItem>
+                                    <SelectItem value="120">120 meses</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="lead">Lead</Label>
+                                <Input
+                                  id="lead"
+                                  value={creditForm.leadId}
+                                  disabled
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="description">Descripción</Label>
+                              <Textarea
+                                id="description"
+                                className="min-h-[80px]"
+                                placeholder="Describe el contexto del crédito..."
+                                value={creditForm.description}
+                                onChange={e => setCreditForm(f => ({ ...f, description: e.target.value }))}
+                              />
+                            </div>
+                            <div className="flex justify-end">
+                              <Button type="submit" disabled={isSaving} className="bg-green-600 text-white hover:bg-green-700">
+                                {isSaving ? 'Guardando...' : 'Crear Crédito'}
+                              </Button>
+                            </div>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
                 </tr>
               ))
             ) : (
