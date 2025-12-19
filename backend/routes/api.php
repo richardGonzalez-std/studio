@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\OpportunityController;
 use App\Http\Controllers\Api\PersonDocumentController;
 use App\Http\Controllers\Api\CreditPaymentController;
+use App\Http\Controllers\Api\LeadDocumentController;
 // Rewards Controllers
 use App\Http\Controllers\Api\Rewards\RewardController;
 use App\Http\Controllers\Api\Rewards\BadgeController;
@@ -47,10 +48,16 @@ Route::get('/lead-statuses', function () {
 Route::patch('/leads/{id}/toggle-active', [LeadController::class, 'toggleActive']);
 Route::post('/leads/{id}/convert', [LeadController::class, 'convertToClient']);
 Route::apiResource('leads', LeadController::class);
-
+Route::get('/leads/check-cedula-folder', [LeadDocumentController::class, 'checkCedulaFolder']);
+Route::post('/leads/create-cedula-folder', [LeadDocumentController::class, 'createCedulaFolder']);
+Route::post('/leads/{lead}/documents', [LeadDocumentController::class, 'store']);
+Route::get('/leads/{lead}/documents', [LeadDocumentController::class, 'index']);
+Route::delete('/leads/documents', [LeadDocumentController::class, 'destroy']);
 // Clientes
 Route::apiResource('clients', ClientController::class);
-
+Route::post('/opportunities/{id}/move-files', [OpportunityController::class, 'moveFiles']);
+Route::get('/opportunities/{id}/files', [OpportunityController::class, 'getFiles']);
+Route::get('/leads/check-cedula-folder', [LeadDocumentController::class, 'checkCedulaFolder']);
 // Oportunidades
 Route::apiResource('opportunities', OpportunityController::class);
 

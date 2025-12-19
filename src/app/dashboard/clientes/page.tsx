@@ -122,7 +122,7 @@ type LeadStatus = {
 export default function ClientesPage() {
   const { toast } = useToast();
   const router = useRouter();
-  
+
   // Data State (Preserved from original)
   const [clientsData, setClientsData] = useState<Client[]>([]);
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
@@ -151,7 +151,7 @@ export default function ClientesPage() {
   const [editingId, setEditingId] = useState<string | Number | null>(null);
   const [editingType, setEditingType] = useState<'lead' | 'client' | null>(null);
   const [isViewOnly, setIsViewOnly] = useState(false);
-  
+
   // TSE Lookup State
   const [isFetchingTse, setIsFetchingTse] = useState(false);
   const [lastTseCedula, setLastTseCedula] = useState<string | null>(null);
@@ -184,7 +184,7 @@ export default function ClientesPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const commonParams: any = {};
       if (searchQuery) commonParams.q = searchQuery;
       if (contactFilter !== "all") commonParams.has_contact = contactFilter;
@@ -290,8 +290,8 @@ export default function ClientesPage() {
         item.cedula || "-",
         item.email,
         item.phone || "-",
-        activeTab === "leads" 
-            ? (item.lead_status?.name || item.lead_status_id) 
+        activeTab === "leads"
+            ? (item.lead_status?.name || item.lead_status_id)
             : (item.status || (item.is_active ? 'Activo' : 'Inactivo')),
         formatRegistered(item.created_at)
     ]);
@@ -333,8 +333,8 @@ export default function ClientesPage() {
         item.cedula || "-",
         item.email,
         item.phone || "-",
-        activeTab === "leads" 
-            ? (item.lead_status?.name || item.lead_status_id) 
+        activeTab === "leads"
+            ? (item.lead_status?.name || item.lead_status_id)
             : (item.status || (item.is_active ? 'Activo' : 'Inactivo')),
         formatRegistered(item.created_at)
     ]);
@@ -403,10 +403,10 @@ export default function ClientesPage() {
         const normalizedApellido1 = typeof payload.apellido1 === "string" ? payload.apellido1.trim() : "";
         const normalizedApellido2 = typeof payload.apellido2 === "string" ? payload.apellido2.trim() : "";
         const normalizedCedula = typeof payload.cedula === "string" ? payload.cedula.trim() : normalizedCedulaValue;
-        
+
         // Format date from TSE (usually DD/MM/YYYY or similar) to display format
         const rawDate = payload["fecha-nacimiento"] || payload.fecha_nacimiento || "";
-        
+
         setLeadFormValues((previous) => ({
           ...previous,
           name: normalizedName || previous.name,
@@ -724,7 +724,7 @@ export default function ClientesPage() {
                     </div>
                   </div>
                 </CollapsibleContent>
-                
+
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                   <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="leads">Leads</TabsTrigger>
@@ -785,18 +785,18 @@ export default function ClientesPage() {
       </div>
 
       {/* Dialogs */}
-      
+
       <Dialog open={isLeadDialogOpen} onOpenChange={(open) => !open && closeLeadDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {isViewOnly 
-                ? 'Detalles del contacto' 
+              {isViewOnly
+                ? 'Detalles del contacto'
                 : (editingId ? (editingType === 'client' ? 'Editar Cliente' : 'Editar Lead') : 'Registrar nuevo lead')}
             </DialogTitle>
             <DialogDescription>
-              {isViewOnly 
-                ? 'Información registrada del contacto.' 
+              {isViewOnly
+                ? 'Información registrada del contacto.'
                 : (editingId ? 'Modifica los datos del contacto.' : 'Captura los datos del contacto para comenzar el seguimiento.')}
             </DialogDescription>
           </DialogHeader>
@@ -880,8 +880,8 @@ export default function ClientesPage() {
         </DialogContent>
       </Dialog>
 
-      <CreateOpportunityDialog 
-        open={isOpportunityDialogOpen} 
+      <CreateOpportunityDialog
+        open={isOpportunityDialogOpen}
         onOpenChange={setIsOpportunityDialogOpen}
         leads={leadForOpportunity ? [leadForOpportunity] : []}
         defaultLeadId={leadForOpportunity ? String(leadForOpportunity.id) : undefined}
@@ -893,7 +893,7 @@ export default function ClientesPage() {
             <DialogHeader>
                 <DialogTitle>¿Eliminar cliente?</DialogTitle>
                 <DialogDescription>
-                    Esta acción eliminará permanentemente a {clientToDelete?.name}. 
+                    Esta acción eliminará permanentemente a {clientToDelete?.name}.
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -907,8 +907,6 @@ export default function ClientesPage() {
 }
 
 
-
-
 type LeadsTableProps = {
   data: Lead[];
   onAction: (action: string, lead: Lead) => void;
@@ -920,11 +918,55 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
   const [constanciaFile, setConstanciaFile] = useState<File | null>(null);
   const [multiFiles, setMultiFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  
+  // Estados para validación de duplicados
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const [currentLeadCedula, setCurrentLeadCedula] = useState<string | null>(null);
 
-  const handleOpenUploadDialog = (leadId: string) => {
-    setUploadDialogOpen(leadId);
-    setConstanciaFile(null);
-    setMultiFiles([]);
+  const handleOpenUploadDialog = async (leadId: string, leadCedula?: string) => {
+    // Verificar si el lead tiene cédula
+    if (!leadCedula) {
+      toast({ 
+        title: "Error", 
+        description: "El lead no tiene cédula registrada. No se puede subir archivos.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setCheckingDuplicate(true);
+    try {
+      // Verificar si ya existe carpeta con archivos para esta cédula
+      const checkRes = await api.get('/api/leads/check-cedula-folder', {
+        params: { cedula: leadCedula }
+      });
+
+      if (checkRes.data?.has_files) {
+        toast({ 
+          title: "Archivos ya existen", 
+          description: `Ya se han subido ${checkRes.data.files_count} archivo(s) para la cédula ${leadCedula}. No se permiten duplicados.`, 
+          variant: "destructive" 
+        });
+        setCheckingDuplicate(false);
+        return;
+      }
+
+      // Si no hay duplicados, abrir el diálogo
+      setCurrentLeadCedula(leadCedula);
+      setUploadDialogOpen(leadId);
+      setConstanciaFile(null);
+      setMultiFiles([]);
+      
+    } catch (error) {
+      console.error('Error verificando duplicados:', error);
+      // Si falla la verificación, permitir continuar (el backend validará de nuevo)
+      setCurrentLeadCedula(leadCedula);
+      setUploadDialogOpen(leadId);
+      setConstanciaFile(null);
+      setMultiFiles([]);
+    } finally {
+      setCheckingDuplicate(false);
+    }
   };
 
   const handleConstanciaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -953,14 +995,31 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
     setUploading(true);
     try {
       const uploadedFilePaths: string[] = [];
+      
+      // Subir constancia
       if (constanciaFile) {
         const formData = new FormData();
         formData.append('file', constanciaFile);
         const res = await api.post(`/api/leads/${uploadDialogOpen}/documents`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
+        
+        // Verificar si el backend rechazó por duplicado
+        if (res.data?.already_uploaded) {
+          toast({ 
+            title: "Ya existen archivos", 
+            description: res.data.message || "No se permiten duplicados.", 
+            variant: "destructive" 
+          });
+          setUploadDialogOpen(null);
+          setCurrentLeadCedula(null);
+          return;
+        }
+        
         if (res.data && res.data.path) uploadedFilePaths.push(res.data.path);
       }
+      
+      // Subir archivos adicionales
       if (multiFiles.length > 0) {
         for (const file of multiFiles) {
           const formData = new FormData();
@@ -968,33 +1027,76 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
           const res = await api.post(`/api/leads/${uploadDialogOpen}/documents`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
+          
+          // Verificar si el backend rechazó por duplicado
+          if (res.data?.already_uploaded) {
+            toast({ 
+              title: "Ya existen archivos", 
+              description: res.data.message || "No se permiten duplicados.", 
+              variant: "destructive" 
+            });
+            setUploadDialogOpen(null);
+            setCurrentLeadCedula(null);
+            return;
+          }
+          
           if (res.data && res.data.path) uploadedFilePaths.push(res.data.path);
         }
       }
 
-      // Fetch the lead to get the cedula
-      let cedula = null;
-      try {
-        const leadRes = await api.get(`/api/leads/${uploadDialogOpen}`);
-        cedula = leadRes.data?.cedula;
-      } catch (e) { /* ignore */ }
+      // Usar la cédula que ya tenemos guardada
+      const cedula = currentLeadCedula;
 
-      // Call backend to create folder with cedula and move/copy files
+      // Crear carpeta y mover archivos
       if (cedula && uploadedFilePaths.length > 0) {
         try {
-          await api.post('/api/leads/create-cedula-folder', {
+          const folderRes = await api.post('/api/leads/create-cedula-folder', {
             cedula,
             files: uploadedFilePaths,
           });
-        } catch (e) {
+          
+          if (folderRes.data?.already_exists) {
+            toast({ 
+              title: "Carpeta ya existe", 
+              description: folderRes.data.message || "Ya existen archivos para esta cédula.", 
+              variant: "destructive" 
+            });
+            setUploadDialogOpen(null);
+            setCurrentLeadCedula(null);
+            return;
+          }
+        } catch (e: any) {
+          if (e.response?.status === 409) {
+            toast({ 
+              title: "Carpeta ya existe", 
+              description: e.response?.data?.message || "Ya existen archivos para esta cédula.", 
+              variant: "destructive" 
+            });
+            setUploadDialogOpen(null);
+            setCurrentLeadCedula(null);
+            return;
+          }
           toast({ title: "Advertencia", description: "No se pudo crear la carpeta por cédula.", variant: "destructive" });
         }
       }
 
       toast({ title: "Archivos subidos", description: "Los archivos se subieron correctamente." });
       setUploadDialogOpen(null);
-    } catch (err) {
-      toast({ title: "Error al subir", description: "No se pudo subir uno o más archivos.", variant: "destructive" });
+      setCurrentLeadCedula(null);
+    } catch (err: any) {
+      // Manejar error 409 del backend
+      if (err.response?.status === 409) {
+        toast({ 
+          title: "Ya existen archivos", 
+          description: err.response?.data?.message || "No se permiten duplicados para esta cédula.", 
+          variant: "destructive" 
+        });
+        setUploadDialogOpen(null);
+        setCurrentLeadCedula(null);
+        return;
+      }
+      toast({ title: "Error", description: (err instanceof Error ? ` ${err.message}` : ""), variant: "destructive" });
+      console.log(err);
     } finally {
       setUploading(false);
     }
@@ -1046,11 +1148,21 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
                   <div className="flex flex-wrap justify-end gap-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" onClick={() => handleOpenUploadDialog(String(lead.id))}>
-                          <Upload className="h-4 w-4" />
+                        <Button 
+                          size="icon" 
+                          onClick={() => handleOpenUploadDialog(String(lead.id), lead.cedula || undefined)}
+                          disabled={checkingDuplicate || !lead.cedula}
+                        >
+                          {checkingDuplicate ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Subir Archivos Obligatorios</TooltipContent>
+                      <TooltipContent>
+                        {!lead.cedula ? "Requiere cédula" : "Subir Archivos Obligatorios"}
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1059,6 +1171,22 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Crear oportunidad</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" className="bg-sky-100 text-sky-700 hover:bg-sky-200" onClick={() => onAction('edit', lead)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="outline" onClick={() => onAction('view', lead)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Ver detalle</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1084,12 +1212,17 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
         </TableBody>
       </Table>
       {/* Upload Dialog */}
-      <Dialog open={!!uploadDialogOpen} onOpenChange={open => { if (!open) setUploadDialogOpen(null); }}>
+      <Dialog open={!!uploadDialogOpen} onOpenChange={open => { if (!open) { setUploadDialogOpen(null); setCurrentLeadCedula(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Subir Archivos</DialogTitle>
             <DialogDescription>
               Adjunta la constancia y otros archivos obligatorios para el lead.
+              {currentLeadCedula && (
+                <span className="block mt-1 text-sm font-medium text-primary">
+                  Cédula: {currentLeadCedula}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1122,7 +1255,9 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadDialogOpen(null)} disabled={uploading}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setUploadDialogOpen(null); setCurrentLeadCedula(null); }} disabled={uploading}>
+              Cancelar
+            </Button>
             <Button onClick={handleUpload} disabled={uploading || (!constanciaFile && multiFiles.length === 0)}>
               {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Subir
@@ -1133,7 +1268,6 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
     </>
   );
 }
-
 function ClientsTable({ data, onEdit, onDelete }: { data: Client[], onEdit: (client: Client) => void, onDelete: (client: Client) => void }) {
     if (data.length === 0) return <div className="text-center p-8 text-muted-foreground">No encontramos clientes con los filtros seleccionados.</div>;
 
