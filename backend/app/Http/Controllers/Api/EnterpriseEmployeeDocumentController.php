@@ -24,7 +24,6 @@ class EnterpriseEmployeeDocumentController extends Controller
             'business_name' => 'required|string|max:255',
             'requirements' => 'required|array',
             'requirements.*.file_extension' => 'required|string|max:50',
-            'requirements.*.binary' => 'required',
             'requirements.*.upload_date' => 'required|date',
             'requirements.*.last_updated' => 'nullable|date',
         ]);
@@ -53,7 +52,6 @@ class EnterpriseEmployeeDocumentController extends Controller
             'business_name' => 'sometimes|required|string|max:255',
             'requirements' => 'sometimes|array',
             'requirements.*.file_extension' => 'required_with:requirements|string|max:50',
-            'requirements.*.binary' => 'required_with:requirements',
             'requirements.*.upload_date' => 'required_with:requirements|date',
             'requirements.*.last_updated' => 'nullable|date',
         ]);
@@ -70,7 +68,7 @@ class EnterpriseEmployeeDocumentController extends Controller
         }
         return response()->json($document->load('requirements'));
     }
-    
+
 
     public function destroy(string $id)
     {

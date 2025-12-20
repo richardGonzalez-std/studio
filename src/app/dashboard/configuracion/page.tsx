@@ -412,9 +412,110 @@ export default function ConfiguracionPage() {
         <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
         <TabsTrigger value="patronos">Patronos</TabsTrigger>
         <TabsTrigger value="deductoras">Deductoras</TabsTrigger>
+        <TabsTrigger value="empresas">Empresas</TabsTrigger>
         <TabsTrigger value="api">API ERP</TabsTrigger>
         <TabsTrigger value="tasa_actual">Tasa Actual</TabsTrigger>
       </TabsList>
+            <TabsContent value="empresas">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Empresas</CardTitle>
+                  <CardDescription>Agrega una nueva empresa y selecciona los tipos asociados.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <EnterpriseCreateForm />
+                </CardContent>
+              </Card>
+            </TabsContent>
+      // --- Enterprise Create Form ---
+      const tiposOptions = [
+        { label: 'Constancia', value: 'Constancia' },
+        { label: 'Colilla', value: 'Colilla' },
+      ];
+
+      function EnterpriseCreateForm() {
+        const { toast } = useToast();
+        const [name, setName] = useState('');
+        const [tipos, setTipos] = useState<string[]>([]);
+        const [saving, setSaving] = useState(false);
+
+        const { token } = useAuth();
+        const handleSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (!name.trim()) {
+            toast({ title: 'Error', description: 'El nombre es obligatorio.', variant: 'destructive' });
+            return;
+          }
+          if (tipos.length === 0) {
+            toast({ title: 'Error', description: 'Selecciona al menos un tipo.', variant: 'destructive' });
+            return;
+          }
+          setSaving(true);
+          try {
+            const now = new Date().toISOString();
+            const extensiones = ['pdf', 'html'];
+            const requirements = tipos.flatMap(tipo =>
+              extensiones.map(ext => ({
+                file_extension: ext,
+                upload_date: now,
+                last_updated: now,
+              }))
+            );
+            const payload = {
+              business_name: name.trim(),
+              requirements,
+            };
+            await api.post('/api/enterprises', payload, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            toast({ title: 'Empresa creada', description: `Nombre: ${name}, Tipos: ${tipos.join(', ')}` });
+            setName('');
+            setTipos([]);
+          } catch (err: any) {
+            const msg = err?.response?.data?.message || 'No se pudo crear la empresa.';
+            toast({ title: 'Error', description: msg, variant: 'destructive' });
+          } finally {
+            setSaving(false);
+          }
+        };
+
+        return (
+          <form className="space-y-4 max-w-md" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="enterprise-name">Nombre de la empresa</Label>
+              <Input
+                id="enterprise-name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Ej: I.M.A.S, C.N.P., ..."
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="enterprise-tipos">Tipos</Label>
+              <Select
+                multiple
+                value={tipos}
+                onValueChange={setTipos}
+              >
+                <SelectTrigger id="enterprise-tipos">
+                  <SelectValue placeholder="Selecciona tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Guardando...' : 'Crear Empresa'}
+              </Button>
+            </div>
+          </form>
+        );
+      }
       <TabsContent value="tasa_actual">
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center gap-3">
