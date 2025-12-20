@@ -13,13 +13,15 @@ import {
   ChevronUp,
   Download,
   Eye,
+  FileText,
   Pencil,
   PlusCircle,
   Sparkles,
   UserCheck,
   Loader2,
   Trash,
-  Upload
+  Upload,
+  X
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -1198,7 +1200,7 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
       </Table>
       {/* Upload Dialog */}
       <Dialog open={!!uploadDialogOpen} onOpenChange={open => { if (!open) { setUploadDialogOpen(null); setCurrentLeadCedula(null); } }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Subir Archivos</DialogTitle>
             <DialogDescription>
@@ -1210,32 +1212,112 @@ function LeadsTable({ data, onAction }: LeadsTableProps) {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block font-medium mb-1">Constancia (PDF o HTML)</label>
-              <input
-                type="file"
-                accept=".pdf,.html,application/pdf,text/html"
-                onChange={handleConstanciaChange}
-                disabled={uploading}
-              />
-              {constanciaFile && <div className="text-xs mt-1 text-muted-foreground">{constanciaFile.name}</div>}
+          <div className="space-y-6">
+            {/* Constancia File Input */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Constancia (PDF o HTML)</Label>
+              <div
+                onClick={() => !uploading && document.getElementById('constancia-input')?.click()}
+                className={`
+                  relative flex flex-col items-center justify-center gap-3 p-6
+                  border-2 border-dashed rounded-lg cursor-pointer
+                  transition-colors duration-200
+                  ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-muted/50'}
+                  ${constanciaFile ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
+                `}
+              >
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Arrastra tu archivo aquí</p>
+                  <p className="text-xs text-muted-foreground mt-1">o</p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" disabled={uploading}>
+                  Seleccionar archivo
+                </Button>
+                <input
+                  id="constancia-input"
+                  type="file"
+                  accept=".pdf,.html,application/pdf,text/html"
+                  onChange={handleConstanciaChange}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </div>
+              {constanciaFile && (
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium truncate max-w-[400px]">{constanciaFile.name}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => { e.stopPropagation(); setConstanciaFile(null); }}
+                    disabled={uploading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block font-medium mb-1">Archivos adicionales (PDF o HTML, múltiples)</label>
-              <input
-                type="file"
-                accept=".pdf,.html,application/pdf,text/html"
-                multiple
-                onChange={handleMultiFilesChange}
-                disabled={uploading}
-              />
+
+            {/* Additional Files Input */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Archivos adicionales (PDF o HTML, múltiples)</Label>
+              <div
+                onClick={() => !uploading && document.getElementById('multi-files-input')?.click()}
+                className={`
+                  relative flex flex-col items-center justify-center gap-3 p-6
+                  border-2 border-dashed rounded-lg cursor-pointer
+                  transition-colors duration-200
+                  ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-muted/50'}
+                  ${multiFiles.length > 0 ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
+                `}
+              >
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Arrastra tus archivos aquí</p>
+                  <p className="text-xs text-muted-foreground mt-1">o</p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" disabled={uploading}>
+                  Seleccionar archivos
+                </Button>
+                <input
+                  id="multi-files-input"
+                  type="file"
+                  accept=".pdf,.html,application/pdf,text/html"
+                  multiple
+                  onChange={handleMultiFilesChange}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </div>
               {multiFiles.length > 0 && (
-                <ul className="mt-2 text-xs text-muted-foreground list-disc pl-4">
+                <div className="space-y-2">
                   {multiFiles.map((file, idx) => (
-                    <li key={idx}>{file.name}</li>
+                    <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium truncate max-w-[400px]">{file.name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMultiFiles(prev => prev.filter((_, i) => i !== idx));
+                        }}
+                        disabled={uploading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
           </div>
