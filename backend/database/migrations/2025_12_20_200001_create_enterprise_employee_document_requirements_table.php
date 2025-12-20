@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('enterprise_requirements', function (Blueprint $table) {
+        Schema::create('enterprises_requirements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('enterprise_id')->constrained('enterprises')->onDelete('cascade');
             $table->string('file_extension', 50);

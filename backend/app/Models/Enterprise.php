@@ -17,6 +17,6 @@ class Enterprise extends Model
 
     public function requirements()
     {
-        return $this->hasMany(EnterpriseRequirement::class);
+        return $this->hasMany(EnterprisesRequirement::class);
     }
 }
