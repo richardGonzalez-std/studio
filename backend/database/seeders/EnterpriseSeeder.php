@@ -45,7 +45,7 @@ class EnterpriseSeeder extends Seeder
                 foreach ($extensiones as $ext) {
                     $enterprise->requirements()->create([
                         'file_extension' => $ext,
-                        'binary' => '', // Aquí puedes poner datos binarios de ejemplo
+                        'name' => $tipo,
                         'upload_date' => $fecha,
                         'last_updated' => $fecha,
                     ]);
