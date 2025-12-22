@@ -7,6 +7,9 @@ import { useSearchParams } from "next/navigation";
 import { MoreHorizontal, PlusCircle, Eye, RefreshCw, Pencil, FileText, FileSpreadsheet, Download, Check, ChevronsUpDown, Filter } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +19,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -57,6 +68,24 @@ import { useToast } from "@/hooks/use-toast";
 
 import api from "@/lib/axios";
 import { credits as mockCredits } from "@/lib/data";
+
+const creditSchema = z.object({
+  reference: z.string().min(1, "La referencia es requerida"),
+  title: z.string().min(1, "El título es requerido"),
+  status: z.string(),
+  category: z.string(),
+  monto_credito: z.coerce.number().min(0, "El monto debe ser positivo"),
+  leadId: z.string().min(1, "Debes seleccionar un lead"),
+  opportunityId: z.string().optional(),
+  assignedTo: z.string().optional(),
+  openedAt: z.string(),
+  description: z.string().optional(),
+  divisa: z.string(),
+  plazo: z.coerce.number().min(1, "El plazo mínimo es 1 mes").max(120, "El plazo máximo es 120 meses"),
+  poliza: z.boolean().default(false),
+});
+
+type CreditFormValues = z.infer<typeof creditSchema>;
 
 interface DeductoraOption {
   id: string | number;
@@ -189,22 +218,6 @@ interface CreditItem {
   tasa_anual?: number | null; // Agregado
 }
 
-interface CreditFormValues {
-  reference: string;
-  title: string;
-  status: string;
-  category: string;
-  monto_credito: string;
-  leadId: string;
-  opportunityId: string;
-  assignedTo: string;
-  openedAt: string;
-  description: string;
-  divisa: string;
-  plazo: string;
-  poliza: boolean;
-}
-
 const CREDIT_STATUS_OPTIONS = [
   "Activo",
   "Mora",
@@ -295,21 +308,27 @@ export default function CreditsPage() {
 
   const [dialogState, setDialogState] = useState<"create" | "edit" | null>(null);
   const [dialogCredit, setDialogCredit] = useState<CreditItem | null>(null);
-  const [formValues, setFormValues] = useState<CreditFormValues>({
-    reference: "",
-    title: "",
-    status: CREDIT_STATUS_OPTIONS[0],
-    category: CREDIT_CATEGORY_OPTIONS[0],
-    monto_credito: "",
-    leadId: "",
-    opportunityId: "",
-    assignedTo: "",
-    openedAt: "",
-    description: "",
-    divisa: "CRC",
-    plazo: "36",
-    poliza: false,
+
+  // Form definition
+  const form = useForm<CreditFormValues>({
+    resolver: zodResolver(creditSchema),
+    defaultValues: {
+      reference: "",
+      title: "",
+      status: CREDIT_STATUS_OPTIONS[0],
+      category: CREDIT_CATEGORY_OPTIONS[0],
+      monto_credito: 0,
+      leadId: "",
+      opportunityId: "",
+      assignedTo: "",
+      openedAt: new Date().toISOString().split('T')[0],
+      description: "",
+      divisa: "CRC",
+      plazo: 36,
+      poliza: false,
+    },
   });
+
   const [isSaving, setIsSaving] = useState(false);
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -324,9 +343,10 @@ export default function CreditsPage() {
 
   // Drag scroll state 
 
+  const currentLeadId = form.watch("leadId");
   const currentLead = useMemo(() => {
-    return formValues.leadId ? leads.find((lead) => lead.id === formValues.leadId) : null;
-  }, [formValues.leadId, leads]);
+    return currentLeadId ? leads.find((lead) => String(lead.id) === currentLeadId) : null;
+  }, [currentLeadId, leads]);
 
   const filteredLeads = useMemo(() => {
     if (!searchQuery) return leads;
@@ -339,12 +359,12 @@ export default function CreditsPage() {
 
   const availableOpportunities = useMemo(() => {
     return opportunities.filter((opportunity) => {
-      const belongsToLead = formValues.leadId ? opportunity.lead_id === parseInt(formValues.leadId, 10) : true;
+      const belongsToLead = currentLeadId ? opportunity.lead_id === parseInt(currentLeadId, 10) : true;
       const canSelectExistingCredit = dialogCredit?.opportunity_id === opportunity.id;
       const isFree = !opportunity.credit;
       return belongsToLead && (canSelectExistingCredit || isFree);
     });
-  }, [opportunities, formValues.leadId, dialogCredit]);
+  }, [opportunities, currentLeadId, dialogCredit]);
 
   // Mock permission for now
   const canDownloadDocuments = true;
@@ -507,19 +527,19 @@ export default function CreditsPage() {
   );
 
   const handleCreate = () => {
-    setFormValues({
+    form.reset({
       reference: "",
       title: "",
       status: CREDIT_STATUS_OPTIONS[0],
       category: CREDIT_CATEGORY_OPTIONS[0],
-      monto_credito: "",
+      monto_credito: 0,
       leadId: "",
       opportunityId: "",
       assignedTo: "",
       openedAt: new Date().toISOString().split('T')[0],
       description: "",
       divisa: "CRC",
-      plazo: "36",
+      plazo: 36,
       poliza: false,
     });
     setDialogCredit(null);
@@ -527,43 +547,42 @@ export default function CreditsPage() {
   };
 
   const handleEdit = (credit: CreditItem) => {
-    setFormValues({
+    form.reset({
       reference: credit.reference,
       title: credit.title,
       status: credit.status || CREDIT_STATUS_OPTIONS[0],
       category: credit.category || CREDIT_CATEGORY_OPTIONS[0],
-      monto_credito: String(credit.monto_credito || ""),
+      monto_credito: credit.monto_credito || 0,
       leadId: String(credit.lead_id),
       opportunityId: credit.opportunity_id ? String(credit.opportunity_id) : "",
       assignedTo: credit.assigned_to || "",
       openedAt: credit.opened_at ? credit.opened_at.split('T')[0] : "",
       description: credit.description || "",
       divisa: credit.divisa || "CRC",
-      plazo: credit.plazo ? String(credit.plazo) : "36",
+      plazo: credit.plazo || 36,
       poliza: credit.poliza ?? false,
     });
     setDialogCredit(credit);
     setDialogState("edit");
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: CreditFormValues) => {
     setIsSaving(true);
     try {
       const body = {
-        reference: formValues.reference,
-        title: formValues.title,
-        status: formValues.status,
-        category: formValues.category,
-        monto_credito: parseFloat(formValues.monto_credito) || 0,
-        lead_id: parseInt(formValues.leadId),
-        opportunity_id: formValues.opportunityId || null,
-        assigned_to: formValues.assignedTo,
-        opened_at: formValues.openedAt,
-        description: formValues.description,
-        divisa: formValues.divisa,
-        plazo: parseInt(formValues.plazo) || 36,
-        poliza: formValues.poliza,
+        reference: values.reference,
+        title: values.title,
+        status: values.status,
+        category: values.category,
+        monto_credito: values.monto_credito,
+        lead_id: parseInt(values.leadId),
+        opportunity_id: values.opportunityId || null,
+        assigned_to: values.assignedTo,
+        opened_at: values.openedAt,
+        description: values.description,
+        divisa: values.divisa,
+        plazo: values.plazo,
+        poliza: values.poliza,
       };
 
       if (dialogState === "create") {
@@ -1055,243 +1074,330 @@ export default function CreditsPage() {
             <DialogTitle>{dialogState === 'create' ? 'Nuevo Crédito' : 'Editar Crédito'}</DialogTitle>
             <DialogDescription>Completa la información del crédito.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <ScrollArea className="h-[60vh] pr-4">
-              <div className="space-y-6 p-1">
-                {/* 1. Datos Generales */}
-                <div>
-                  <h3 className="text-lg font-medium">Datos Generales</h3>
-                  <Separator className="my-2" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Título</Label>
-                      <Input
-                        id="title"
-                        placeholder="Crédito Hipotecario..."
-                        value={formValues.title}
-                        onChange={e => setFormValues({ ...formValues, title: e.target.value })}
-                        required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <ScrollArea className="h-[60vh] pr-4">
+                <div className="space-y-6 p-1">
+                  {/* 1. Datos Generales */}
+                  <div>
+                    <h3 className="text-lg font-medium">Datos Generales</h3>
+                    <Separator className="my-2" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Título</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Crédito Hipotecario..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reference">Referencia</Label>
-                      <Input
-                        id="reference"
-                        placeholder="Ej: CRED-ABC12345"
-                        value={formValues.reference}
-                        onChange={e => setFormValues({ ...formValues, reference: e.target.value })}
-                        required
+                      <FormField
+                        control={form.control}
+                        name="reference"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Referencia</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ej: CRED-ABC12345" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </div>
-                    <div className="space-y-2 flex flex-col">
-                      <Label htmlFor="lead">Lead / Cliente</Label>
-                      <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openCombobox}
-                            className="justify-between font-normal w-full"
-                          >
-                            {formValues.leadId
-                              ? leads.find((lead) => String(lead.id) === formValues.leadId)?.name
-                              : "Selecciona un lead..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-[400px]" align="start">
-                          <div className="p-2 border-b">
-                            <Input
-                              placeholder="Buscar por nombre o cédula..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              className="h-8"
-                            />
-                          </div>
-                          <div className="max-h-[200px] overflow-y-auto p-1">
-                            {filteredLeads.length === 0 ? (
-                              <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron leads.</div>
-                            ) : (
-                              filteredLeads.map((lead) => (
-                                <div
-                                  key={lead.id}
-                                  className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${String(lead.id) === formValues.leadId ? "bg-accent text-accent-foreground" : ""}`}
-                                  onClick={() => {
-                                    setFormValues({ ...formValues, leadId: String(lead.id) });
-                                    setOpenCombobox(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={`mr-2 h-4 w-4 ${String(lead.id) === formValues.leadId ? "opacity-100" : "opacity-0"
-                                      }`}
+                      <FormField
+                        control={form.control}
+                        name="leadId"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Lead / Cliente</FormLabel>
+                            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={openCombobox}
+                                    className="justify-between font-normal w-full"
+                                  >
+                                    {field.value
+                                      ? leads.find((lead) => String(lead.id) === field.value)?.name
+                                      : "Selecciona un lead..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0 w-[400px]" align="start">
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Buscar por nombre o cédula..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="h-8"
                                   />
-                                  <div className="flex flex-col">
-                                    <span>{lead.name}</span>
-                                    {lead.cedula && <span className="text-xs text-muted-foreground">{lead.cedula}</span>}
-                                  </div>
                                 </div>
-                              ))
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="assignedTo">Responsable</Label>
-                      <Select value={formValues.assignedTo} onValueChange={v => setFormValues({ ...formValues, assignedTo: v })}>
-                        <SelectTrigger id="assignedTo">
-                          <SelectValue placeholder="Selecciona un responsable" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={user.name}>{user.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="opportunity">Oportunidad (Opcional)</Label>
-                      <Select value={formValues.opportunityId} onValueChange={v => setFormValues({ ...formValues, opportunityId: v })}>
-                        <SelectTrigger id="opportunity"><SelectValue placeholder="Selecciona una oportunidad" /></SelectTrigger>
-                        <SelectContent>
-                          {availableOpportunities.map(o => (
-                            <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Condiciones Financieras */}
-                <div>
-                  <h3 className="text-lg font-medium">Condiciones Financieras</h3>
-                  <Separator className="my-2" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="monto">Monto</Label>
-                      <Input
-                        id="monto"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={formValues.monto_credito}
-                        onChange={e => setFormValues({ ...formValues, monto_credito: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="plazo">Plazo (Meses)</Label>
-                      <Input
-                        id="plazo"
-                        type="number"
-                        min={1}
-                        max={120}
-                        value={formValues.plazo}
-                        onChange={e => {
-                          let value = e.target.value;
-                          if (Number(value) < 1) value = "1";
-                          if (Number(value) > 120) value = "120";
-                          setFormValues({ ...formValues, plazo: value });
-                        }}
-                        placeholder="Plazo en meses"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="divisa">Divisa</Label>
-                      <Select value={formValues.divisa} onValueChange={v => setFormValues({ ...formValues, divisa: v })}>
-                        <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
-                        <SelectContent>
-                          {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="openedAt">Fecha Apertura</Label>
-                      <Input
-                        id="openedAt"
-                        type="date"
-                        value={formValues.openedAt}
-                        onChange={e => setFormValues({ ...formValues, openedAt: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Configuración Adicional */}
-                <div>
-                  <h3 className="text-lg font-medium">Configuración Adicional</h3>
-                  <Separator className="my-2" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Categoría</Label>
-                      <Select value={formValues.category} onValueChange={v => setFormValues({ ...formValues, category: v })}>
-                        <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
-                        <SelectContent>
-                          {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                                    <div className="space-y-2">
-                                      <Label>¿Tiene póliza?</Label>
-                                      <div className="flex items-center space-x-2 pt-2">
-                                        <Switch
-                                          id="poliza-switch"
-                                          checked={formValues.poliza}
-                                          onCheckedChange={(checked) => setFormValues({ ...formValues, poliza: checked })}
+                                <div className="max-h-[200px] overflow-y-auto p-1">
+                                  {filteredLeads.length === 0 ? (
+                                    <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron leads.</div>
+                                  ) : (
+                                    filteredLeads.map((lead) => (
+                                      <div
+                                        key={lead.id}
+                                        className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${String(lead.id) === field.value ? "bg-accent text-accent-foreground" : ""}`}
+                                        onClick={() => {
+                                          form.setValue("leadId", String(lead.id));
+                                          setOpenCombobox(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={`mr-2 h-4 w-4 ${String(lead.id) === field.value ? "opacity-100" : "opacity-0"
+                                            }`}
                                         />
-                                        <Label htmlFor="poliza-switch" className="font-normal cursor-pointer">
-                                          {formValues.poliza ? "Sí" : "No"}
-                                        </Label>
+                                        <div className="flex flex-col">
+                                          <span>{lead.name}</span>
+                                          {lead.cedula && <span className="text-xs text-muted-foreground">{lead.cedula}</span>}
+                                        </div>
                                       </div>
-                                    </div>                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="status">Estado Inicial</Label>
-                      <Select value={formValues.status} onValueChange={v => setFormValues({ ...formValues, status: v })}>
-                        <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
-                        <SelectContent>
-                          {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="sm:col-span-2 space-y-2">
-                      <Label htmlFor="description">Descripción</Label>
-                      <Textarea
-                        id="description"
-                        className="min-h-[120px]"
-                        placeholder="Describe el contexto del crédito..."
-                        value={formValues.description}
-                        onChange={e => setFormValues({ ...formValues, description: e.target.value })}
+                                    ))
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="assignedTo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Responsable</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona un responsable" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {users.map(user => (
+                                  <SelectItem key={user.id} value={user.name}>{user.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="opportunityId"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Oportunidad (Opcional)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona una oportunidad" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {availableOpportunities.map(o => (
+                                  <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
                   </div>
+
+                  {/* 2. Condiciones Financieras */}
+                  <div>
+                    <h3 className="text-lg font-medium">Condiciones Financieras</h3>
+                    <Separator className="my-2" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="monto_credito"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monto Solicitado</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="plazo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Plazo (Meses)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="1" max="120" placeholder="Plazo en meses" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="divisa"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Divisa</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona la divisa" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="openedAt"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Fecha Apertura</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3. Configuración Adicional */}
+                  <div>
+                    <h3 className="text-lg font-medium">Configuración Adicional</h3>
+                    <Separator className="my-2" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoría</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona la categoría" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="poliza"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>¿Tiene póliza?</FormLabel>
+                            <div className="flex items-center space-x-2 pt-2">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">
+                                {field.value ? "Sí" : "No"}
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Estado Inicial</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona el estado" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Descripción</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                className="min-h-[120px]"
+                                placeholder="Describe el contexto del crédito..."
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {currentLead ? (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Información del lead</CardTitle>
+                        <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="text-sm">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <span className="font-medium">Nombre:</span> {currentLead.name}
+                          </div>
+                          <div>
+                            <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null}
                 </div>
+              </ScrollArea>
 
-                {currentLead ? (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Información del lead</CardTitle>
-                      <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div>
-                          <span className="font-medium">Nombre:</span> {currentLead.name}
-                        </div>
-                        <div>
-                          <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : null}
-              </div>
-            </ScrollArea>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogState(null)}>Cancelar</Button>
-              <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogState(null)}>Cancelar</Button>
+                <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
