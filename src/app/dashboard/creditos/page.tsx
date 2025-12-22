@@ -182,6 +182,7 @@ interface CreditItem {
   saldo?: number | null;
   proceso?: string | null;
   documento_id?: string | null;
+  poliza?: boolean | null;
   tasa_anual?: number | null; // Agregado
 }
 
@@ -198,6 +199,7 @@ interface CreditFormValues {
   description: string;
   divisa: string;
   plazo: string;
+  poliza: boolean;
 }
 
 const CREDIT_STATUS_OPTIONS = [
@@ -303,6 +305,7 @@ export default function CreditsPage() {
     description: "",
     divisa: "CRC",
     plazo: "36",
+    poliza: false,
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -514,6 +517,7 @@ export default function CreditsPage() {
       description: "",
       divisa: "CRC",
       plazo: "36",
+      poliza: false,
     });
     setDialogCredit(null);
     setDialogState("create");
@@ -533,6 +537,7 @@ export default function CreditsPage() {
       description: credit.description || "",
       divisa: credit.divisa || "CRC",
       plazo: credit.plazo ? String(credit.plazo) : "36",
+      poliza: credit.poliza ?? false,
     });
     setDialogCredit(credit);
     setDialogState("edit");
@@ -555,6 +560,7 @@ export default function CreditsPage() {
         description: formValues.description,
         divisa: formValues.divisa,
         plazo: parseInt(formValues.plazo) || 36,
+        poliza: formValues.poliza,
       };
 
       if (dialogState === "create") {
@@ -796,6 +802,17 @@ export default function CreditsPage() {
             <PopoverContent className="w-80">
               <div className="grid gap-4">
                 <div className="space-y-2">
+                                <Label htmlFor="poliza">¿Tiene póliza?</Label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    id="poliza"
+                                    type="checkbox"
+                                    checked={formValues.poliza}
+                                    onChange={e => setFormValues({ ...formValues, poliza: e.target.checked })}
+                                    className="form-checkbox h-5 w-5 text-primary border-gray-300 rounded"
+                                  />
+                                  <span className="text-sm">Cliente cuenta con póliza</span>
+                                </div>
                   <h4 className="font-medium leading-none">Filtros</h4>
                   <p className="text-sm text-muted-foreground">
                     Filtra los créditos por los siguientes criterios.
