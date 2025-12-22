@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1055,238 +1056,241 @@ export default function CreditsPage() {
             <DialogDescription>Completa la información del crédito.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* 1. Datos Generales */}
-            <div>
-              <h3 className="text-lg font-medium">Datos Generales</h3>
-              <Separator className="my-2" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título</Label>
-                  <Input
-                    id="title"
-                    placeholder="Crédito Hipotecario..."
-                    value={formValues.title}
-                    onChange={e => setFormValues({ ...formValues, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reference">Referencia</Label>
-                  <Input
-                    id="reference"
-                    placeholder="Ej: CRED-ABC12345"
-                    value={formValues.reference}
-                    onChange={e => setFormValues({ ...formValues, reference: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2 flex flex-col">
-                  <Label htmlFor="lead">Lead / Cliente</Label>
-                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openCombobox}
-                        className="justify-between font-normal w-full"
-                      >
-                        {formValues.leadId
-                          ? leads.find((lead) => String(lead.id) === formValues.leadId)?.name
-                          : "Selecciona un lead..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[400px]" align="start">
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Buscar por nombre o cédula..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="max-h-[200px] overflow-y-auto p-1">
-                        {filteredLeads.length === 0 ? (
-                          <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron leads.</div>
-                        ) : (
-                          filteredLeads.map((lead) => (
-                            <div
-                              key={lead.id}
-                              className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${String(lead.id) === formValues.leadId ? "bg-accent text-accent-foreground" : ""}`}
-                              onClick={() => {
-                                setFormValues({ ...formValues, leadId: String(lead.id) });
-                                setOpenCombobox(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${String(lead.id) === formValues.leadId ? "opacity-100" : "opacity-0"
-                                  }`}
-                              />
-                              <div className="flex flex-col">
-                                <span>{lead.name}</span>
-                                {lead.cedula && <span className="text-xs text-muted-foreground">{lead.cedula}</span>}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="assignedTo">Responsable</Label>
-                  <Select value={formValues.assignedTo} onValueChange={v => setFormValues({ ...formValues, assignedTo: v })}>
-                    <SelectTrigger id="assignedTo">
-                      <SelectValue placeholder="Selecciona un responsable" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map(user => (
-                        <SelectItem key={user.id} value={user.name}>{user.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="opportunity">Oportunidad (Opcional)</Label>
-                  <Select value={formValues.opportunityId} onValueChange={v => setFormValues({ ...formValues, opportunityId: v })}>
-                    <SelectTrigger id="opportunity"><SelectValue placeholder="Selecciona una oportunidad" /></SelectTrigger>
-                    <SelectContent>
-                      {availableOpportunities.map(o => (
-                        <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Condiciones Financieras */}
-            <div>
-              <h3 className="text-lg font-medium">Condiciones Financieras</h3>
-              <Separator className="my-2" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="monto">Monto Solicitado</Label>
-                  <Input
-                    id="monto"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formValues.monto_credito}
-                    onChange={e => setFormValues({ ...formValues, monto_credito: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="plazo">Plazo (Meses)</Label>
-                  <Input
-                    id="plazo"
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={formValues.plazo}
-                    onChange={e => {
-                      let value = e.target.value;
-                      if (Number(value) < 1) value = "1";
-                      if (Number(value) > 120) value = "120";
-                      setFormValues({ ...formValues, plazo: value });
-                    }}
-                    placeholder="Plazo en meses"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="divisa">Divisa</Label>
-                  <Select value={formValues.divisa} onValueChange={v => setFormValues({ ...formValues, divisa: v })}>
-                    <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
-                    <SelectContent>
-                      {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="openedAt">Fecha Apertura</Label>
-                  <Input
-                    id="openedAt"
-                    type="date"
-                    value={formValues.openedAt}
-                    onChange={e => setFormValues({ ...formValues, openedAt: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Configuración Adicional */}
-            <div>
-              <h3 className="text-lg font-medium">Configuración Adicional</h3>
-              <Separator className="my-2" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoría</Label>
-                  <Select value={formValues.category} onValueChange={v => setFormValues({ ...formValues, category: v })}>
-                    <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
-                    <SelectContent>
-                      {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>¿Tiene póliza?</Label>
-                  <RadioGroup
-                    value={String(formValues.poliza)}
-                    onValueChange={value => setFormValues({ ...formValues, poliza: value === 'true' })}
-                    className="flex items-center space-x-4 pt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="true" id="poliza-si" />
-                      <Label htmlFor="poliza-si" className="font-normal">Sí</Label>
+            <ScrollArea className="h-[60vh] pr-4">
+              <div className="space-y-6 p-1">
+                {/* 1. Datos Generales */}
+                <div>
+                  <h3 className="text-lg font-medium">Datos Generales</h3>
+                  <Separator className="my-2" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título</Label>
+                      <Input
+                        id="title"
+                        placeholder="Crédito Hipotecario..."
+                        value={formValues.title}
+                        onChange={e => setFormValues({ ...formValues, title: e.target.value })}
+                        required
+                      />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="false" id="poliza-no" />
-                      <Label htmlFor="poliza-no" className="font-normal">No</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="reference">Referencia</Label>
+                      <Input
+                        id="reference"
+                        placeholder="Ej: CRED-ABC12345"
+                        value={formValues.reference}
+                        onChange={e => setFormValues({ ...formValues, reference: e.target.value })}
+                        required
+                      />
                     </div>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="status">Estado Inicial</Label>
-                  <Select value={formValues.status} onValueChange={v => setFormValues({ ...formValues, status: v })}>
-                    <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
-                    <SelectContent>
-                      {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:col-span-2 space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    className="min-h-[120px]"
-                    placeholder="Describe el contexto del crédito..."
-                    value={formValues.description}
-                    onChange={e => setFormValues({ ...formValues, description: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {currentLead ? (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Información del lead</CardTitle>
-                  <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div>
-                      <span className="font-medium">Nombre:</span> {currentLead.name}
+                    <div className="space-y-2 flex flex-col">
+                      <Label htmlFor="lead">Lead / Cliente</Label>
+                      <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCombobox}
+                            className="justify-between font-normal w-full"
+                          >
+                            {formValues.leadId
+                              ? leads.find((lead) => String(lead.id) === formValues.leadId)?.name
+                              : "Selecciona un lead..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[400px]" align="start">
+                          <div className="p-2 border-b">
+                            <Input
+                              placeholder="Buscar por nombre o cédula..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto p-1">
+                            {filteredLeads.length === 0 ? (
+                              <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron leads.</div>
+                            ) : (
+                              filteredLeads.map((lead) => (
+                                <div
+                                  key={lead.id}
+                                  className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${String(lead.id) === formValues.leadId ? "bg-accent text-accent-foreground" : ""}`}
+                                  onClick={() => {
+                                    setFormValues({ ...formValues, leadId: String(lead.id) });
+                                    setOpenCombobox(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${String(lead.id) === formValues.leadId ? "opacity-100" : "opacity-0"
+                                      }`}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{lead.name}</span>
+                                    {lead.cedula && <span className="text-xs text-muted-foreground">{lead.cedula}</span>}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                    <div>
-                      <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
+                    <div className="space-y-2">
+                      <Label htmlFor="assignedTo">Responsable</Label>
+                      <Select value={formValues.assignedTo} onValueChange={v => setFormValues({ ...formValues, assignedTo: v })}>
+                        <SelectTrigger id="assignedTo">
+                          <SelectValue placeholder="Selecciona un responsable" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.name}>{user.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="opportunity">Oportunidad (Opcional)</Label>
+                      <Select value={formValues.opportunityId} onValueChange={v => setFormValues({ ...formValues, opportunityId: v })}>
+                        <SelectTrigger id="opportunity"><SelectValue placeholder="Selecciona una oportunidad" /></SelectTrigger>
+                        <SelectContent>
+                          {availableOpportunities.map(o => (
+                            <SelectItem key={o.id} value={String(o.id)}>{o.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : null}
+                </div>
+
+                {/* 2. Condiciones Financieras */}
+                <div>
+                  <h3 className="text-lg font-medium">Condiciones Financieras</h3>
+                  <Separator className="my-2" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="monto">Monto Solicitado</Label>
+                      <Input
+                        id="monto"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={formValues.monto_credito}
+                        onChange={e => setFormValues({ ...formValues, monto_credito: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="plazo">Plazo (Meses)</Label>
+                      <Input
+                        id="plazo"
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={formValues.plazo}
+                        onChange={e => {
+                          let value = e.target.value;
+                          if (Number(value) < 1) value = "1";
+                          if (Number(value) > 120) value = "120";
+                          setFormValues({ ...formValues, plazo: value });
+                        }}
+                        placeholder="Plazo en meses"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="divisa">Divisa</Label>
+                      <Select value={formValues.divisa} onValueChange={v => setFormValues({ ...formValues, divisa: v })}>
+                        <SelectTrigger id="divisa"><SelectValue placeholder="Selecciona la divisa" /></SelectTrigger>
+                        <SelectContent>
+                          {CURRENCY_OPTIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="openedAt">Fecha Apertura</Label>
+                      <Input
+                        id="openedAt"
+                        type="date"
+                        value={formValues.openedAt}
+                        onChange={e => setFormValues({ ...formValues, openedAt: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Configuración Adicional */}
+                <div>
+                  <h3 className="text-lg font-medium">Configuración Adicional</h3>
+                  <Separator className="my-2" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoría</Label>
+                      <Select value={formValues.category} onValueChange={v => setFormValues({ ...formValues, category: v })}>
+                        <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
+                        <SelectContent>
+                          {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>¿Tiene póliza?</Label>
+                      <RadioGroup
+                        value={String(formValues.poliza)}
+                        onValueChange={value => setFormValues({ ...formValues, poliza: value === 'true' })}
+                        className="flex items-center space-x-4 pt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="true" id="poliza-si" />
+                          <Label htmlFor="poliza-si" className="font-normal">Sí</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="false" id="poliza-no" />
+                          <Label htmlFor="poliza-no" className="font-normal">No</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="status">Estado Inicial</Label>
+                      <Select value={formValues.status} onValueChange={v => setFormValues({ ...formValues, status: v })}>
+                        <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
+                        <SelectContent>
+                          {CREDIT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2 space-y-2">
+                      <Label htmlFor="description">Descripción</Label>
+                      <Textarea
+                        id="description"
+                        className="min-h-[120px]"
+                        placeholder="Describe el contexto del crédito..."
+                        value={formValues.description}
+                        onChange={e => setFormValues({ ...formValues, description: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {currentLead ? (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Información del lead</CardTitle>
+                      <CardDescription>Resumen del lead relacionado con este crédito.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-sm">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div>
+                          <span className="font-medium">Nombre:</span> {currentLead.name}
+                        </div>
+                        <div>
+                          <span className="font-medium">Correo:</span> {currentLead.email ?? "-"}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+            </ScrollArea>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogState(null)}>Cancelar</Button>
