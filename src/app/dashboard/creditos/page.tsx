@@ -1169,7 +1169,7 @@ export default function CreditsPage() {
                   <Separator className="my-2" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="monto">Monto Solicitado</Label>
+                      <Label htmlFor="monto">Monto</Label>
                       <Input
                         id="monto"
                         type="number"
