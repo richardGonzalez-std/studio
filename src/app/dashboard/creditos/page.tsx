@@ -15,6 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Card,
   CardContent,
@@ -1084,18 +1085,6 @@ export default function CreditsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center space-x-2 h-full"> {/* Use h-full to align with other fields */}
-                  <input
-                    id="poliza"
-                    type="checkbox"
-                    checked={formValues.poliza}
-                    onChange={e => setFormValues({ ...formValues, poliza: e.target.checked })}
-                    className="form-checkbox h-4 w-4 text-primary border-gray-300 rounded"
-                  />
-                  <Label htmlFor="poliza" className="text-sm font-medium leading-none">¿Tiene póliza?</Label>
-                </div>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>
                 <Select value={formValues.category} onValueChange={v => setFormValues({ ...formValues, category: v })}>
                   <SelectTrigger id="category"><SelectValue placeholder="Selecciona la categoría" /></SelectTrigger>
@@ -1103,6 +1092,23 @@ export default function CreditsPage() {
                     {CREDIT_CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>¿Tiene póliza?</Label>
+                <RadioGroup
+                  value={String(formValues.poliza)}
+                  onValueChange={value => setFormValues({ ...formValues, poliza: value === 'true' })}
+                  className="flex items-center space-x-4 pt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true" id="poliza-si" />
+                    <Label htmlFor="poliza-si" className="font-normal">Sí</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="false" id="poliza-no" />
+                    <Label htmlFor="poliza-no" className="font-normal">No</Label>
+                  </div>
+                </RadioGroup>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="divisa">Divisa</Label>
