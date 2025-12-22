@@ -893,6 +893,35 @@ function CreditDetailClient({ id }: { id: string }) {
                     <CardTitle>Plan de Pagos</CardTitle>
                     <CardDescription>Detalle de cuotas y movimientos históricos</CardDescription>
                   </div>
+                  {credit.status === 'Formalizado' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!confirm('¿Estás seguro de que deseas regenerar el plan de pagos? Esto eliminará las cuotas pendientes y creará un nuevo plan.')) return;
+                        try {
+                          setLoading(true);
+                          await api.post(`/api/credits/${params.id}/generate-plan-de-pagos`);
+                          toast({
+                            title: 'Plan de pagos regenerado',
+                            description: 'El plan de pagos se ha regenerado correctamente.',
+                          });
+                          await fetchCredit();
+                        } catch (error) {
+                          console.error('Error regenerando plan de pagos:', error);
+                          toast({
+                            title: 'Error',
+                            description: 'No se pudo regenerar el plan de pagos.',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      Regenerar Plan
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
                   <Table>
@@ -973,8 +1002,47 @@ function CreditDetailClient({ id }: { id: string }) {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={30} className="text-center py-8 text-muted-foreground">
-                            No hay movimientos registrados para este crédito.
+                          <TableCell colSpan={30} className="text-center py-12">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="text-muted-foreground">
+                                {credit.status !== 'Formalizado' ? (
+                                  <>
+                                    <p className="font-medium mb-2">El plan de pagos se generará al formalizar el crédito</p>
+                                    <p className="text-sm">Cambia el estado a "Formalizado" para generar el plan automáticamente.</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-medium mb-2">No hay plan de pagos generado</p>
+                                    <p className="text-sm mb-4">Haz clic en el botón para generar el plan de pagos.</p>
+                                    <Button
+                                      size="sm"
+                                      onClick={async () => {
+                                        try {
+                                          setLoading(true);
+                                          await api.post(`/api/credits/${params.id}/generate-plan-de-pagos`);
+                                          toast({
+                                            title: 'Plan de pagos generado',
+                                            description: 'El plan de pagos se ha generado correctamente.',
+                                          });
+                                          await fetchCredit();
+                                        } catch (error: any) {
+                                          console.error('Error generando plan de pagos:', error);
+                                          toast({
+                                            title: 'Error',
+                                            description: error?.response?.data?.message || 'No se pudo generar el plan de pagos.',
+                                            variant: 'destructive',
+                                          });
+                                        } finally {
+                                          setLoading(false);
+                                        }
+                                      }}
+                                    >
+                                      Generar Plan de Pagos
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}

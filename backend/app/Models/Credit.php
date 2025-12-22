@@ -74,38 +74,8 @@ class Credit extends Model
                 $credit->saveQuietly();
             }
 
-            $credit->planDePagos()->create([
-                'linea' => '1',
-                'numero_cuota' => 0,
-                'proceso' => ($credit->opened_at ?? now())->format('Ym'),
-                'fecha_inicio' => $credit->opened_at ?? now(),
-                'fecha_corte' => null,
-                'fecha_pago' => null,
-                'tasa_actual' => $credit->tasa_anual ?? 33.5,
-                'plazo_actual' => $credit->plazo ?? 0,
-                'cuota' => 0,
-                'cargos' => 0,
-                'poliza' => 0,
-                'interes_corriente' => 0,
-                'interes_moratorio' => 0,
-                'amortizacion' => 0,
-                'saldo_anterior' =>  0,
-                'saldo_nuevo' => $credit->monto_credito ?? 0,
-                'dias' => 0,
-                'estado' => 'Vigente',
-                'dias_mora' => 0,
-                'fecha_movimiento' => $credit->opened_at ?? now(),
-                'movimiento_total' => $credit->monto_credito ?? 0,
-                'movimiento_cargos' => 0,
-                'movimiento_poliza' => 0,
-                'movimiento_interes_corriente' => 0,
-                'movimiento_interes_moratorio' => 0,
-                'movimiento_principal' => $credit->monto_credito ?? 0,
-                'movimiento_caja_usuario' => 'Sistema',
-                'tipo_documento' => 'Formalización',
-                'numero_documento' => $credit->numero_operacion,
-                'concepto' => 'Desembolso Inicial',
-            ]);
+            // La línea de inicialización (cuota 0) del plan de pagos
+            // se crea ahora en el CreditController al formalizar
         });
     }
 

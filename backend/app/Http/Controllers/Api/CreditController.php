@@ -97,7 +97,7 @@ class CreditController extends Controller
 
     /**
      * MOTOR DE CÁLCULO INICIAL
-     * Genera las cuotas desde la 1 hasta el Plazo final.
+     * Genera la línea de inicialización (cuota 0) y las cuotas desde la 1 hasta el Plazo final.
      */
     private function generateAmortizationSchedule(Credit $credit)
     {
@@ -106,6 +106,45 @@ class CreditController extends Controller
         $tasaAnual = (float) $credit->tasa_anual;
 
         $tasaMensual = ($tasaAnual / 100) / 12;
+
+        // 0. Crear línea de inicialización (cuota 0) - Desembolso Inicial
+        $existsInitialization = $credit->planDePagos()->where('numero_cuota', 0)->exists();
+        if (!$existsInitialization) {
+            PlanDePago::create([
+                'credit_id' => $credit->id,
+                'linea' => '1',
+                'numero_cuota' => 0,
+                'proceso' => ($credit->opened_at ?? now())->format('Ym'),
+                'fecha_inicio' => $credit->opened_at ?? now(),
+                'fecha_corte' => null,
+                'fecha_pago' => null,
+                'tasa_actual' => $tasaAnual,
+                'plazo_actual' => $plazo,
+                'cuota' => 0,
+                'cargos' => 0,
+                'poliza' => 0,
+                'interes_corriente' => 0,
+                'interes_moratorio' => 0,
+                'amortizacion' => 0,
+                'saldo_anterior' => 0,
+                'saldo_nuevo' => $monto,
+                'dias' => 0,
+                'estado' => 'Vigente',
+                'dias_mora' => 0,
+                'fecha_movimiento' => $credit->opened_at ?? now(),
+                'movimiento_total' => $monto,
+                'movimiento_cargos' => 0,
+                'movimiento_poliza' => 0,
+                'movimiento_interes_corriente' => 0,
+                'movimiento_interes_moratorio' => 0,
+                'movimiento_principal' => $monto,
+                'movimiento_amortizacion' => 0,
+                'movimiento_caja_usuario' => 'Sistema',
+                'tipo_documento' => 'Formalización',
+                'numero_documento' => $credit->numero_operacion,
+                'concepto' => 'Desembolso Inicial',
+            ]);
+        }
 
         // 1. Cálculo PMT (Cuota Fija)
         if ($tasaMensual > 0) {
@@ -236,6 +275,8 @@ class CreditController extends Controller
     public function update(Request $request, $id)
     {
         $credit = Credit::findOrFail($id);
+        $previousStatus = $credit->status;
+
         $validated = $request->validate([
             'reference' => 'sometimes|required|unique:credits,reference,' . $id,
             'status' => 'sometimes|required|string',
@@ -243,8 +284,49 @@ class CreditController extends Controller
             'tasa_anual' => 'nullable|numeric',
              // ... resto de campos si es necesario editar
         ]);
+
         $credit->update($validated);
-        return response()->json($credit);
+
+        // Si el estado cambió a "Formalizado" y no hay plan de pagos, generarlo
+        if (isset($validated['status']) &&
+            strtolower($validated['status']) === 'formalizado' &&
+            strtolower($previousStatus) !== 'formalizado') {
+
+            $existingPlan = $credit->planDePagos()->where('numero_cuota', '>', 0)->exists();
+            if (!$existingPlan) {
+                $this->generateAmortizationSchedule($credit);
+            }
+        }
+
+        return response()->json($credit->load('planDePagos'));
+    }
+
+    /**
+     * Generar o regenerar el plan de pagos para un crédito
+     */
+    public function generatePlanDePagos($id)
+    {
+        $credit = Credit::findOrFail($id);
+
+        // Validar que el crédito tenga los datos necesarios
+        if (!$credit->monto_credito || !$credit->plazo) {
+            return response()->json([
+                'message' => 'El crédito debe tener monto y plazo definidos.'
+            ], 422);
+        }
+
+        // Eliminar plan de pagos existente (excepto pagos aplicados)
+        $credit->planDePagos()
+            ->where('estado', '!=', 'Pagado')
+            ->delete();
+
+        // Generar nuevo plan
+        $this->generateAmortizationSchedule($credit);
+
+        return response()->json([
+            'message' => 'Plan de pagos generado correctamente.',
+            'plan_de_pagos' => $credit->fresh()->planDePagos()->orderBy('numero_cuota')->get()
+        ]);
     }
 
     public function destroy($id) {

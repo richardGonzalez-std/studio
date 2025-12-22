@@ -65,6 +65,7 @@ Route::apiResource('opportunities', OpportunityController::class);
 // Créditos
 Route::apiResource('credits', \App\Http\Controllers\Api\CreditController::class);
 Route::get('credits/{id}/balance', [\App\Http\Controllers\Api\CreditController::class, 'balance']);
+Route::post('credits/{id}/generate-plan-de-pagos', [\App\Http\Controllers\Api\CreditController::class, 'generatePlanDePagos']);
 Route::get('credits/{id}/documents', [\App\Http\Controllers\Api\CreditController::class, 'documents']);
 Route::post('credits/{id}/documents', [\App\Http\Controllers\Api\CreditController::class, 'storeDocument']);
 Route::delete('credits/{id}/documents/{documentId}', [\App\Http\Controllers\Api\CreditController::class, 'destroyDocument']);

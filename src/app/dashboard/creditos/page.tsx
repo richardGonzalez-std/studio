@@ -928,8 +928,21 @@ export default function CreditsPage() {
                                   variant="outline"
                                   className="ml-2"
                                   onClick={async () => {
-                                    await api.put(`/api/credits/${credit.id}`, { status: 'Formalizado' });
-                                    window.location.reload();
+                                    try {
+                                      await api.put(`/api/credits/${credit.id}`, { status: 'Formalizado' });
+                                      toast({
+                                        title: 'Crédito formalizado',
+                                        description: 'El plan de pagos se ha generado correctamente.',
+                                      });
+                                      fetchCredits();
+                                    } catch (error) {
+                                      console.error('Error formalizando crédito:', error);
+                                      toast({
+                                        title: 'Error',
+                                        description: 'No se pudo formalizar el crédito.',
+                                        variant: 'destructive',
+                                      });
+                                    }
                                   }}
                                 >Formalizar</Button>
                               )}
