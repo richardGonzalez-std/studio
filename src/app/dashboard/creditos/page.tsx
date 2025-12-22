@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -1232,24 +1232,19 @@ export default function CreditsPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>¿Tiene póliza?</Label>
-                      <RadioGroup
-                        value={String(formValues.poliza)}
-                        onValueChange={value => setFormValues({ ...formValues, poliza: value === 'true' })}
-                        className="flex items-center space-x-4 pt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="true" id="poliza-si" />
-                          <Label htmlFor="poliza-si" className="font-normal">Sí</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="false" id="poliza-no" />
-                          <Label htmlFor="poliza-no" className="font-normal">No</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
+                                    <div className="space-y-2">
+                                      <Label>¿Tiene póliza?</Label>
+                                      <div className="flex items-center space-x-2 pt-2">
+                                        <Switch
+                                          id="poliza-switch"
+                                          checked={formValues.poliza}
+                                          onCheckedChange={(checked) => setFormValues({ ...formValues, poliza: checked })}
+                                        />
+                                        <Label htmlFor="poliza-switch" className="font-normal cursor-pointer">
+                                          {formValues.poliza ? "Sí" : "No"}
+                                        </Label>
+                                      </div>
+                                    </div>                    <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="status">Estado Inicial</Label>
                       <Select value={formValues.status} onValueChange={v => setFormValues({ ...formValues, status: v })}>
                         <SelectTrigger id="status"><SelectValue placeholder="Selecciona el estado" /></SelectTrigger>
