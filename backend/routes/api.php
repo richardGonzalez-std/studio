@@ -54,6 +54,7 @@ Route::post('/leads/{lead}/documents', [LeadDocumentController::class, 'store'])
 Route::get('/leads/{lead}/documents', [LeadDocumentController::class, 'index']);
 Route::delete('/leads/documents', [LeadDocumentController::class, 'destroy']);
 // Clientes
+Route::get('/clients/check-cedula-folder', [\App\Http\Controllers\Api\ClientDocumentController::class, 'checkCedulaFolder']);
 Route::apiResource('clients', ClientController::class);
 Route::post('/opportunities/{id}/move-files', [OpportunityController::class, 'moveFiles']);
 Route::get('/opportunities/{id}/files', [OpportunityController::class, 'getFiles']);

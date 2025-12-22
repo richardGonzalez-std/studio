@@ -57,11 +57,14 @@ export function CreateOpportunityDialog({
 }: CreateOpportunityDialogProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [hasDocuments, setHasDocuments] = useState<boolean | null>(null);
+  const [checkingDocs, setCheckingDocs] = useState(false);
 
   // Combobox state
   const [openVertical, setOpenVertical] = useState(false);
   const [searchVertical, setSearchVertical] = useState("");
 
+  // Form state - debe estar antes de los useEffect que lo usan
   const [formValues, setFormValues] = useState<OpportunityFormValues>({
     leadId: defaultLeadId || "",
     vertical: VERTICAL_OPTIONS[0],
@@ -72,20 +75,55 @@ export function CreateOpportunityDialog({
     comments: "",
   });
 
+  // Detectar si es lead o cliente por props
+  const isLeadContext = leads && leads.length > 0;
+
+  // Reset form cuando se abre el diálogo
   useEffect(() => {
     if (open) {
-        setFormValues(prev => ({
-            ...prev,
-            leadId: defaultLeadId || prev.leadId || (leads.length > 0 ? String(leads[0].id) : ""),
-            vertical: VERTICAL_OPTIONS[0],
-            opportunityType: OPPORTUNITY_TYPES[0],
-            status: OPPORTUNITY_STATUSES[0],
-            amount: "",
-            expectedCloseDate: "",
-            comments: "",
-        }));
+      setFormValues(prev => ({
+        ...prev,
+        leadId: defaultLeadId || prev.leadId || (leads.length > 0 ? String(leads[0].id) : ""),
+        vertical: VERTICAL_OPTIONS[0],
+        opportunityType: OPPORTUNITY_TYPES[0],
+        status: OPPORTUNITY_STATUSES[0],
+        amount: "",
+        expectedCloseDate: "",
+        comments: "",
+      }));
     }
   }, [open, defaultLeadId, leads]);
+
+  // Verificar documentos al cambiar leadId
+  useEffect(() => {
+    const checkDocs = async () => {
+      setCheckingDocs(true);
+      setHasDocuments(null);
+      let cedula = "";
+      if (isLeadContext) {
+        const selectedLead = leads.find(l => String(l.id) === formValues.leadId);
+        cedula = selectedLead?.cedula || "";
+      }
+      if (!cedula) {
+        setHasDocuments(false);
+        setCheckingDocs(false);
+        return;
+      }
+      try {
+        const url = isLeadContext
+          ? `/api/leads/check-cedula-folder?cedula=${cedula}`
+          : `/api/clients/check-cedula-folder?cedula=${cedula}`;
+        const res = await api.get(url);
+        setHasDocuments(!!res.data.exists);
+      } catch (e) {
+        setHasDocuments(false);
+      } finally {
+        setCheckingDocs(false);
+      }
+    };
+    if (formValues.leadId) checkDocs();
+    else setHasDocuments(false);
+  }, [formValues.leadId, leads, isLeadContext]);
 
   const handleFormField = useCallback(
     (field: keyof OpportunityFormValues) =>
@@ -253,7 +291,15 @@ export function CreateOpportunityDialog({
             </div>
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
+                <Button type="submit" disabled={isSaving || checkingDocs || !hasDocuments}>
+                  {isSaving
+                    ? "Guardando..."
+                    : checkingDocs
+                      ? "Verificando documentos..."
+                      : hasDocuments
+                        ? "Guardar"
+                        : "Sube documentos para habilitar"}
+                </Button>
             </DialogFooter>
           </form>
         </DialogContent>
