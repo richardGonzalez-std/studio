@@ -1083,16 +1083,17 @@ export default function CreditsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Label htmlFor="poliza">¿Tiene póliza?</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="poliza"
-                  type="checkbox"
-                  checked={formValues.poliza}
-                  onChange={e => setFormValues({ ...formValues, poliza: e.target.checked })}
-                  className="form-checkbox h-2 w-2 text-primary border-gray-300 rounded"
-                />
-                <span className="text-sm">Cliente cuenta con póliza</span>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 h-full"> {/* Use h-full to align with other fields */}
+                  <input
+                    id="poliza"
+                    type="checkbox"
+                    checked={formValues.poliza}
+                    onChange={e => setFormValues({ ...formValues, poliza: e.target.checked })}
+                    className="form-checkbox h-4 w-4 text-primary border-gray-300 rounded"
+                  />
+                  <Label htmlFor="poliza" className="text-sm font-medium leading-none">¿Tiene póliza?</Label>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>

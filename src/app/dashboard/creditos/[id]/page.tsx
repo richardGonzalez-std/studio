@@ -921,7 +921,7 @@ function CreditDetailClient({ id }: { id: string }) {
                         if (!confirm('¿Estás seguro de que deseas regenerar el plan de pagos? Esto eliminará las cuotas pendientes y creará un nuevo plan.')) return;
                         try {
                           setLoading(true);
-                          await api.post(`/api/credits/${params.id}/generate-plan-de-pagos`);
+                          await api.post(`/api/credits/${id}/generate-plan-de-pagos`);
                           toast({
                             title: 'Plan de pagos regenerado',
                             description: 'El plan de pagos se ha regenerado correctamente.',
@@ -1039,7 +1039,7 @@ function CreditDetailClient({ id }: { id: string }) {
                                       onClick={async () => {
                                         try {
                                           setLoading(true);
-                                          await api.post(`/api/credits/${params.id}/generate-plan-de-pagos`);
+                                          await api.post(`/api/credits/${id}/generate-plan-de-pagos`);
                                           toast({
                                             title: 'Plan de pagos generado',
                                             description: 'El plan de pagos se ha generado correctamente.',
