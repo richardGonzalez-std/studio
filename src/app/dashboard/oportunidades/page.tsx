@@ -18,9 +18,20 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -66,6 +77,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import api from "@/lib/axios";
 import { type Opportunity, type Lead, OPPORTUNITY_STATUSES, VERTICAL_OPTIONS, OPPORTUNITY_TYPES } from "@/lib/data";
 
+const opportunitySchema = z.object({
+  leadId: z.string().min(1, "Debes seleccionar un lead"),
+  vertical: z.string(),
+  opportunityType: z.string(),
+  status: z.string(),
+  amount: z.coerce.number().min(0, "El monto debe ser positivo"),
+  expectedCloseDate: z.string().optional(),
+  comments: z.string().optional(),
+});
+
+type OpportunityFormValues = z.infer<typeof opportunitySchema>;
+
 // --- Constants & Helpers ---
 
 const CASE_STATUS_OPTIONS = ["Abierto", "En Progreso", "En Espera", "Cerrado"] as const;
@@ -86,16 +109,6 @@ interface OpportunityTableFilters {
   vertical: string;
   createdFrom: string;
   createdTo: string;
-}
-
-interface OpportunityFormValues {
-  leadId: string;
-  vertical: string;
-  opportunityType: string;
-  status: string;
-  amount: string;
-  expectedCloseDate: string;
-  comments: string;
 }
 
 interface ConvertCaseFormValues {
@@ -177,15 +190,22 @@ export default function DealsPage() {
   // Dialog States
   const [dialogState, setDialogState] = useState<"create" | "edit" | null>(null);
   const [dialogOpportunity, setDialogOpportunity] = useState<Opportunity | null>(null);
-  const [formValues, setFormValues] = useState<OpportunityFormValues>({
-    leadId: "",
-    vertical: VERTICAL_OPTIONS[0],
-    opportunityType: OPPORTUNITY_TYPES[0],
-    status: OPPORTUNITY_STATUSES[0],
-    amount: "",
-    expectedCloseDate: "",
-    comments: "",
+
+  const defaultStatus = useMemo(() => OPPORTUNITY_STATUSES[0], []);
+
+  const form = useForm<OpportunityFormValues>({
+    resolver: zodResolver(opportunitySchema),
+    defaultValues: {
+      leadId: "",
+      vertical: VERTICAL_OPTIONS[0],
+      opportunityType: OPPORTUNITY_TYPES[0],
+      status: defaultStatus,
+      amount: 0,
+      expectedCloseDate: "",
+      comments: "",
+    },
   });
+
   const [isSaving, setIsSaving] = useState(false);
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -246,8 +266,6 @@ export default function DealsPage() {
     () => ({ column: "created_at", direction: "desc" })
   );
 
-  const defaultStatus = useMemo(() => OPPORTUNITY_STATUSES[0], []);
-
   // --- Fetching ---
 
   const fetchOpportunities = useCallback(async () => {
@@ -302,26 +320,23 @@ export default function DealsPage() {
   // --- Form Logic ---
 
   useEffect(() => {
-    if (dialogState === "create" && formValues.leadId === "" && leads.length > 0) {
-      setFormValues((prev) => ({
-        ...prev,
-        leadId: String(leads[0].id),
-      }));
+    if (dialogState === "create" && form.getValues("leadId") === "" && leads.length > 0) {
+      form.setValue("leadId", String(leads[0].id));
     }
-  }, [dialogState, formValues.leadId, leads]);
+  }, [dialogState, leads, form]);
 
   const resetForm = useCallback((opportunity?: Opportunity | null) => {
     const derivedVertical = opportunity ? normalizeOpportunityVertical(opportunity.vertical) : VERTICAL_OPTIONS[0];
-    setFormValues({
+    form.reset({
       leadId: opportunity?.lead?.id ? String(opportunity.lead.id) : "",
       vertical: derivedVertical,
       opportunityType: opportunity?.opportunity_type || OPPORTUNITY_TYPES[0],
       status: opportunity?.status ?? defaultStatus,
-      amount: opportunity?.amount != null ? String(opportunity.amount) : "",
+      amount: opportunity?.amount != null ? Number(opportunity.amount) : 0,
       expectedCloseDate: opportunity?.expected_close_date ?? "",
       comments: opportunity?.comments ?? "",
     });
-  }, [defaultStatus]);
+  }, [defaultStatus, form]);
 
   const resetConvertCaseForm = useCallback(() => {
     setConvertCaseValues({
@@ -347,21 +362,11 @@ export default function DealsPage() {
     setDialogState("edit");
   }, [resetForm]);
 
-  const handleFormField = useCallback(
-    (field: keyof OpportunityFormValues) =>
-      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const value = event.target.value;
-        setFormValues((prev) => ({ ...prev, [field]: value }));
-      },
-    []
-  );
-
-  const handleSaveOpportunity = useCallback(async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+  const onSubmit = async (values: OpportunityFormValues) => {
       setIsSaving(true);
 
       try {
-        const selectedLead = leads.find(l => String(l.id) === formValues.leadId);
+        const selectedLead = leads.find(l => String(l.id) === values.leadId);
         if (!selectedLead) {
             toast({ title: "Error", description: "Lead no válido.", variant: "destructive" });
             setIsSaving(false);
@@ -370,12 +375,12 @@ export default function DealsPage() {
 
         const body: any = {
             lead_cedula: selectedLead.cedula,
-            vertical: formValues.vertical,
-            opportunity_type: formValues.opportunityType,
-            status: formValues.status,
-            amount: parseFloat(formValues.amount) || 0,
-            expected_close_date: formValues.expectedCloseDate || null,
-            comments: formValues.comments,
+            vertical: values.vertical,
+            opportunity_type: values.opportunityType,
+            status: values.status,
+            amount: values.amount || 0,
+            expected_close_date: values.expectedCloseDate || null,
+            comments: values.comments,
             assigned_to_id: selectedLead.assigned_to_id
         };
 
@@ -395,7 +400,7 @@ export default function DealsPage() {
       } finally {
           setIsSaving(false);
       }
-  }, [dialogState, dialogOpportunity, formValues, leads, closeDialog, fetchOpportunities, toast]);
+  };
 
   // --- Delete Logic ---
 
@@ -1038,107 +1043,174 @@ export default function DealsPage() {
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>{dialogDescription}</DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSaveOpportunity}>
-            <div className="space-y-2">
-              <Label>Lead asociado</Label>
-              <Select value={formValues.leadId} onValueChange={(val) => setFormValues(prev => ({ ...prev, leadId: val }))} disabled={isLoadingLeads}>
-                <SelectTrigger><SelectValue placeholder={isLoadingLeads ? "Cargando..." : "Selecciona un lead"} /></SelectTrigger>
-                <SelectContent>
-                    {availableLeadOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-                <Label>Vertical</Label>
-                <Popover open={openVertical} onOpenChange={setOpenVertical} modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openVertical}
-                      className="w-full justify-between"
-                    >
-                      {formValues.vertical
-                        ? VERTICAL_OPTIONS.find((v) => v === formValues.vertical)
-                        : "Seleccionar vertical..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0 z-[200]">
-                    <div className="p-2 border-b">
-                        <Input 
+          <Form {...form}>
+            <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+              <FormField
+                control={form.control}
+                name="leadId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead asociado</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isLoadingLeads}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingLeads ? "Cargando..." : "Selecciona un lead"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableLeadOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vertical"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vertical</FormLabel>
+                    <Popover open={openVertical} onOpenChange={setOpenVertical} modal={true}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openVertical}
+                            className="w-full justify-between"
+                          >
+                            {field.value
+                              ? VERTICAL_OPTIONS.find((v) => v === field.value)
+                              : "Seleccionar vertical..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0 z-[200]">
+                        <div className="p-2 border-b">
+                          <Input 
                             placeholder="Buscar vertical..." 
                             value={searchVertical} 
                             onChange={(e) => setSearchVertical(e.target.value)}
                             className="h-8"
-                        />
-                    </div>
-                    <div className="max-h-[300px] overflow-y-auto p-1">
-                        {filteredVerticals.length === 0 ? (
+                          />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto p-1">
+                          {filteredVerticals.length === 0 ? (
                             <div className="py-6 text-center text-sm text-muted-foreground">No se encontraron resultados.</div>
-                        ) : (
+                          ) : (
                             filteredVerticals.map((vertical) => (
-                                <div
-                                    key={vertical}
-                                    className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${formValues.vertical === vertical ? "bg-accent text-accent-foreground" : ""}`}
-                                    onClick={() => {
-                                        setFormValues(prev => ({ ...prev, vertical: vertical }));
-                                        setOpenVertical(false);
-                                        setSearchVertical("");
-                                    }}
-                                >
-                                    <Check
-                                        className={`mr-2 h-4 w-4 ${
-                                            formValues.vertical === vertical ? "opacity-100" : "opacity-0"
-                                        }`}
-                                    />
-                                    {vertical}
-                                </div>
+                              <div
+                                key={vertical}
+                                className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${field.value === vertical ? "bg-accent text-accent-foreground" : ""}`}
+                                onClick={() => {
+                                  form.setValue("vertical", vertical);
+                                  setOpenVertical(false);
+                                  setSearchVertical("");
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    field.value === vertical ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                {vertical}
+                              </div>
                             ))
-                        )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-            </div>
-            <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={formValues.opportunityType} onValueChange={(val) => setFormValues(prev => ({ ...prev, opportunityType: val }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        {OPPORTUNITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                    <Label>Estado</Label>
-                    <Select value={formValues.status} onValueChange={(val) => setFormValues(prev => ({ ...prev, status: val }))}>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="opportunityType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            {OPPORTUNITY_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
+                      </FormControl>
+                      <SelectContent>
+                        {OPPORTUNITY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
                     </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Monto</Label>
-                    <Input type="number" value={formValues.amount} onChange={handleFormField("amount")} placeholder="0.00" />
-                </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                    <Label>Cierre esperado</Label>
-                    <Input type="date" value={formValues.expectedCloseDate} onChange={handleFormField("expectedCloseDate")} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                    <Label>Comentarios</Label>
-                    <Textarea value={formValues.comments} onChange={handleFormField("comments")} rows={3} />
-                </div>
-            </div>
-            <DialogFooter>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {OPPORTUNITY_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monto</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="expectedCloseDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cierre esperado</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="comments"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Comentarios</FormLabel>
+                      <FormControl>
+                        <Textarea rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button>
                 <Button type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
-            </DialogFooter>
-          </form>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
