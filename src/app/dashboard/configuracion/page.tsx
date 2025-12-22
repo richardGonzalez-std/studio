@@ -60,29 +60,83 @@ const tiposOptions = [
   { label: 'Colilla', value: 'Colilla' },
 ];
 
-function EnterpriseCreateForm() {
+interface Empresa {
+  id: number;
+  business_name: string;
+  requirements: { id?: number; name: string; file_extension: string }[];
+}
+
+const EmpresasCRUD: React.FC = () => {
   const { toast } = useToast();
-  const [name, setName] = useState('');
-  const [tipos, setTipos] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
   const { token } = useAuth();
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEmpresa, setEditingEmpresa] = useState<Empresa | null>(null);
+  const [formData, setFormData] = useState({
+    business_name: '',
+    tipos: [] as string[],
+  });
+
+  const fetchEmpresas = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/enterprises', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setEmpresas(res.data);
+    } catch (err) {
+      console.error('Error fetching empresas:', err);
+      setEmpresas([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmpresas();
+  }, [token]);
+
+  const openCreateDialog = () => {
+    setEditingEmpresa(null);
+    setFormData({ business_name: '', tipos: [] });
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (empresa: Empresa) => {
+    setEditingEmpresa(empresa);
+    const uniqueTipos = [...new Set(empresa.requirements?.map(r => r.name) || [])];
+    setFormData({
+      business_name: empresa.business_name,
+      tipos: uniqueTipos,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingEmpresa(null);
+    setFormData({ business_name: '', tipos: [] });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!formData.business_name.trim()) {
       toast({ title: 'Error', description: 'El nombre es obligatorio.', variant: 'destructive' });
       return;
     }
-    if (tipos.length === 0) {
+    if (formData.tipos.length === 0) {
       toast({ title: 'Error', description: 'Selecciona al menos un tipo.', variant: 'destructive' });
       return;
     }
+
     setSaving(true);
     try {
       const now = new Date().toISOString();
       const extensiones = ['pdf', 'html'];
 
-      const requirements = tipos.flatMap(tipo =>
+      const requirements = formData.tipos.flatMap(tipo =>
         extensiones.map(ext => ({
           name: tipo,
           file_extension: ext,
@@ -92,116 +146,130 @@ function EnterpriseCreateForm() {
       );
 
       const payload = {
-        business_name: name.trim(),
+        business_name: formData.business_name.trim(),
         requirements,
       };
 
-      await api.post('/api/enterprises', payload, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      if (editingEmpresa) {
+        await api.put(`/api/enterprises/${editingEmpresa.id}`, payload, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        toast({ title: 'Empresa actualizada', description: `${formData.business_name} ha sido actualizada.` });
+      } else {
+        await api.post('/api/enterprises', payload, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        toast({ title: 'Empresa creada', description: `${formData.business_name} ha sido creada.` });
+      }
 
-      toast({ title: 'Empresa creada', description: `Nombre: ${name}, Tipos: ${tipos.join(', ')}` });
-      setName('');
-      setTipos([]);
+      closeDialog();
+      fetchEmpresas();
     } catch (err: any) {
       console.error(err);
-      const msg = err?.response?.data?.message || 'No se pudo crear la empresa.';
+      const msg = err?.response?.data?.message || 'No se pudo guardar la empresa.';
       toast({ title: 'Error', description: msg, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <form className="space-y-4 max-w-md" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <Label htmlFor="enterprise-name">Nombre de la empresa</Label>
-        <Input
-          id="enterprise-name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Ej: I.M.A.S, C.N.P., ..."
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="enterprise-tipos">Tipos</Label>
-        {/* Nota: El Select de Shadcn estándar es Single Select. 
-            Si necesitas selección múltiple real, necesitarás un componente MultiSelect custom 
-            o usar Checkboxes. Aquí simulo la selección simple por compatibilidad, 
-            o agrega lógica acumulativa si tu componente lo soporta. */}
-        <Select
-          value={tipos.length > 0 ? tipos[0] : ''}
-          onValueChange={(val) => {
-            // Lógica simple: Reemplaza. Si quieres múltiple, cambia a checkboxes o MultiSelect component.
-            setTipos([val]);
-          }}
-        >
-          <SelectTrigger id="enterprise-tipos">
-            <SelectValue placeholder="Selecciona tipos" />
-          </SelectTrigger>
-          <SelectContent>
-            {tiposOptions.map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          * Para selección múltiple, implementa un componente MultiSelect o usa checkboxes.
-        </p>
-      </div>
-      <div className="flex justify-end">
-        <Button type="submit" disabled={saving}>
-          {saving ? 'Guardando...' : 'Crear Empresa'}
-        </Button>
-      </div>
-    </form>
-  );
-}
+  const handleDelete = async (empresa: Empresa) => {
+    if (!confirm(`¿Eliminar la empresa "${empresa.business_name}"?`)) return;
 
-// ----------------------------------------------------------------------
-// 2. COMPONENTE PRINCIPAL
-// ----------------------------------------------------------------------
+    try {
+      await api.delete(`/api/enterprises/${empresa.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      toast({ title: 'Eliminado', description: 'Empresa eliminada correctamente.' });
+      fetchEmpresas();
+    } catch (err) {
+      console.error('Error deleting empresa:', err);
+      toast({ title: 'Error', description: 'No se pudo eliminar la empresa.', variant: 'destructive' });
+    }
+  };
 
-interface Deductora {
-  id: number;
-  nombre: string;
-  fecha_reporte_pago: string | null;
-  comision: number | null;
-}
-
-const EmpresasTable: React.FC = () => {
-  const [empresas, setEmpresas] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const { token } = useAuth();
-
-  React.useEffect(() => {
-    const fetchEmpresas = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/api/enterprises', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        setEmpresas(res.data);
-      } catch (err) {
-        setEmpresas([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEmpresas();
-  }, [token]);
+  const toggleTipo = (tipo: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tipos: prev.tipos.includes(tipo)
+        ? prev.tipos.filter(t => t !== tipo)
+        : [...prev.tipos, tipo],
+    }));
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lista de Empresas</CardTitle>
-        <CardDescription>Visualiza todas las empresas registradas.</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Empresas</CardTitle>
+            <CardDescription>Gestiona las empresas y sus requerimientos.</CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1" onClick={openCreateDialog}>
+                <PlusCircle className="h-4 w-4" />
+                Agregar Empresa
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingEmpresa ? 'Editar Empresa' : 'Crear Empresa'}</DialogTitle>
+                <DialogDescription>
+                  {editingEmpresa ? 'Modifica los datos de la empresa.' : 'Ingresa los datos de la nueva empresa.'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="empresa-name">Nombre de la empresa</Label>
+                  <Input
+                    id="empresa-name"
+                    value={formData.business_name}
+                    onChange={e => setFormData(prev => ({ ...prev, business_name: e.target.value }))}
+                    placeholder="Ej: I.M.A.S, C.N.P., ..."
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipos de documentos requeridos</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {tiposOptions.map(opt => (
+                      <Button
+                        key={opt.value}
+                        type="button"
+                        variant={formData.tipos.includes(opt.value) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => toggleTipo(opt.value)}
+                        disabled={saving}
+                      >
+                        {formData.tipos.includes(opt.value) && <CheckCircle className="h-4 w-4 mr-1" />}
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Cada tipo generará requerimientos para extensiones PDF y HTML.
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={closeDialog} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {editingEmpresa ? 'Actualizar' : 'Crear'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <Table>
@@ -210,32 +278,48 @@ const EmpresasTable: React.FC = () => {
                 <TableHead>ID</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Requerimientos</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {empresas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     No hay empresas registradas.
                   </TableCell>
                 </TableRow>
               ) : (
-                empresas.map((empresa: any) => (
+                empresas.map((empresa) => (
                   <TableRow key={empresa.id}>
                     <TableCell>{empresa.id}</TableCell>
-                    <TableCell>{empresa.business_name}</TableCell>
+                    <TableCell className="font-medium">{empresa.business_name}</TableCell>
                     <TableCell>
                       {empresa.requirements && empresa.requirements.length > 0 ? (
-                        <ul className="list-disc pl-4">
+                        <div className="flex flex-wrap gap-1">
                           {[...new Map(empresa.requirements.map((req: any) => [req.name, req])).values()].map((req: any, idx: number) => (
-                            <li key={idx}>
+                            <span key={idx} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                               {req.name || 'Documento'}
-                            </li>
+                            </span>
                           ))}
-                        </ul>
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Sin requerimientos</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menú</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEditDialog(empresa)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(empresa)}>Eliminar</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -247,6 +331,17 @@ const EmpresasTable: React.FC = () => {
     </Card>
   );
 };
+
+// ----------------------------------------------------------------------
+// 2. COMPONENTE PRINCIPAL
+// ----------------------------------------------------------------------
+
+interface Deductora {
+  id: number;
+  nombre: string;
+  fecha_reporte_pago: string | null;
+  comision: number | null;
+}
 
 export default function ConfiguracionPage() {
   const { toast } = useToast();
@@ -614,26 +709,7 @@ export default function ConfiguracionPage() {
 
 
       <TabsContent value="empresas">
-        <Tabs defaultValue="crud" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="crud">CRUD</TabsTrigger>
-            <TabsTrigger value="tabla">Tabla</TabsTrigger>
-          </TabsList>
-          <TabsContent value="crud">
-            <Card>
-              <CardHeader>
-                <CardTitle>Empresas</CardTitle>
-                <CardDescription>Agrega una nueva empresa y selecciona los tipos asociados.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EnterpriseCreateForm />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="tabla">
-            <EmpresasTable />
-          </TabsContent>
-        </Tabs>
+        <EmpresasCRUD />
       </TabsContent>
 
       <TabsContent value="tasa_actual">
