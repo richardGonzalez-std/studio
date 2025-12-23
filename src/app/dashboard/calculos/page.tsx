@@ -22,9 +22,9 @@ import {
 } from '@/components/ui/select';
 // Importamos los íconos que usaremos.
 import { Calculator, Search, RefreshCw, MessageSquare, Mail } from 'lucide-react';
-// $$$ CONECTOR MYSQL: Se importan los datos de ejemplo de leads y la configuración de créditos.
-// Los créditos ahora se obtienen de la API en tiempo real.
-import { Credit, leads, creditConfigs } from '@/lib/data';
+// $$$ CONECTOR MYSQL: Se importan la configuración de créditos.
+// Los créditos y leads ahora se obtienen de la API en tiempo real.
+import { Credit, creditConfigs, type Lead } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
@@ -46,6 +46,8 @@ export default function CalculosPage() {
   const [term, setTerm] = useState('36'); // Plazo en meses
   const [monthlyPayment, setMonthlyPayment] = useState<number | null>(null); // Cuota mensual calculada
   const [selectedLead, setSelectedLead] = useState<string | undefined>(undefined); // Lead seleccionado para enviarle la cotización
+  const [leads, setLeads] = useState<Lead[]>([]); // Lista de leads desde la API
+  const [loadingLeads, setLoadingLeads] = useState(false); // Estado de carga de leads
 
   // --- Estados para la Calculadora de Arreglos de Pago ---
   const [operationNumber, setOperationNumber] = useState(''); // Número de operación a buscar
@@ -86,6 +88,31 @@ export default function CalculosPage() {
     }),
     [opportunitySearch, opportunities]
   );
+
+  /**
+   * Efecto que carga los leads desde la API al montar el componente.
+   */
+  useEffect(() => {
+    const fetchLeads = async () => {
+      setLoadingLeads(true);
+      try {
+        const response = await api.get('/api/leads');
+        const leadsList = Array.isArray(response.data) ? response.data : response.data.data || [];
+        setLeads(leadsList);
+      } catch (error) {
+        console.error('Error cargando leads:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los leads.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLeads(false);
+      }
+    };
+
+    fetchLeads();
+  }, [toast]);
 
   /**
    * Efecto que se ejecuta cuando el tipo de crédito cambia.
@@ -221,7 +248,7 @@ export default function CalculosPage() {
    * @param {'comunicaciones' | 'email'} method - El método de envío.
    */
   const handleSendQuote = async (method: 'comunicaciones' | 'email') => {
-    const lead = leads.find(l => l.id === selectedLead);
+    const lead = leads.find(l => String(l.id) === selectedLead);
     if (!lead || !monthlyPayment) return;
 
     try {
@@ -375,17 +402,22 @@ export default function CalculosPage() {
                     <h4 className="font-medium">Enviar Cotización a Lead</h4>
                      <div className="space-y-2">
                         <Label htmlFor="select-lead">Seleccionar Lead</Label>
-                        {/* $$$ CONECTOR MYSQL: La lista de leads vendrá de la base de datos. */}
-                        <Select value={selectedLead} onValueChange={setSelectedLead}>
+                        <Select value={selectedLead} onValueChange={setSelectedLead} disabled={loadingLeads}>
                             <SelectTrigger id="select-lead">
-                                <SelectValue placeholder="Selecciona un lead..." />
+                                <SelectValue placeholder={loadingLeads ? "Cargando leads..." : "Selecciona un lead..."} />
                             </SelectTrigger>
                             <SelectContent>
-                                {leads.map(lead => (
-                                    <SelectItem key={lead.id} value={lead.id}>
-                                        {lead.name} ({lead.cedula})
-                                    </SelectItem>
-                                ))}
+                                {leads.length === 0 ? (
+                                    <div className="p-2 text-sm text-muted-foreground text-center">
+                                        {loadingLeads ? "Cargando..." : "No hay leads disponibles"}
+                                    </div>
+                                ) : (
+                                    leads.map(lead => (
+                                        <SelectItem key={lead.id} value={String(lead.id)}>
+                                            {lead.name} ({lead.cedula})
+                                        </SelectItem>
+                                    ))
+                                )}
                             </SelectContent>
                         </Select>
                     </div>
