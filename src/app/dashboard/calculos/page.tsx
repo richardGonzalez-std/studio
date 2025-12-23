@@ -251,9 +251,20 @@ export default function CalculosPage() {
     const lead = leads.find(l => String(l.id) === selectedLead);
     if (!lead || !monthlyPayment) return;
 
+    // Validar que el lead tenga email antes de continuar
+    if (!lead.email) {
+      toast({
+        title: "Error de validación",
+        description: `El lead ${lead.name} no tiene un correo electrónico registrado.`,
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+
     try {
-      const response = await api.post('/api/quotes/send', {
-        lead_id: lead.id,
+      const payload = {
+        lead_id: String(lead.id),
         lead_name: lead.name,
         lead_email: lead.email,
         amount: parseFloat(amount),
@@ -262,7 +273,11 @@ export default function CalculosPage() {
         monthly_payment: monthlyPayment,
         credit_type: creditType,
         method: method,
-      });
+      };
+
+      console.log('Enviando cotización con payload:', payload);
+
+      const response = await api.post('/api/quotes/send', payload);
 
       if (response.data.success) {
         toast({
@@ -273,9 +288,15 @@ export default function CalculosPage() {
       }
     } catch (error: any) {
       console.error('Error enviando cotización:', error);
+      console.error('Detalles del error:', error?.response?.data);
+
+      const errorMessage = error?.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(', ')
+        : error?.response?.data?.message || "No se pudo enviar la cotización. Por favor intenta de nuevo.";
+
       toast({
         title: "Error al enviar",
-        description: error?.response?.data?.message || "No se pudo enviar la cotización. Por favor intenta de nuevo.",
+        description: errorMessage,
         variant: "destructive",
         duration: 5000,
       });
