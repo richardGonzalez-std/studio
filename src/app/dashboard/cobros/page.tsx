@@ -248,6 +248,10 @@ export default function CobrosPage() {
     return creditsList.filter(c => c.lead && String(c.lead.id) === selectedLeadId);
   }, [creditsList, selectedLeadId]);
 
+  const selectedCredit = useMemo(() => {
+    return creditsList.find(c => String(c.id) === selectedCreditId);
+  }, [creditsList, selectedCreditId]);
+
   const openAbonoModal = useCallback(() => setAbonoModalOpen(true), []);
   const closeAbonoModal = useCallback(() => {
     setAbonoModalOpen(false);
@@ -418,6 +422,13 @@ export default function CobrosPage() {
                               )}
                             </SelectContent>
                           </Select>
+                          
+                          {selectedCredit && selectedCredit.status !== 'Formalizado' && (
+                            <div className="mt-2 p-2 text-[10px] leading-tight bg-amber-50 border border-amber-200 text-amber-700 rounded-md flex items-start gap-2">
+                              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                              <span>Este crédito no está <strong>Formalizado</strong> (Estado: {selectedCredit.status}). No se pueden registrar abonos manuales hasta que el crédito sea formalizado y tenga un plan de pagos.</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -522,7 +533,7 @@ export default function CobrosPage() {
                         </div>
 
                         <DialogFooter>
-                          <Button type="submit" disabled={!selectedCreditId}>Aplicar Pago</Button>
+                          <Button type="submit" disabled={!selectedCreditId || selectedCredit?.status !== 'Formalizado'}>Aplicar Pago</Button>
                           <Button type="button" variant="outline" onClick={closeAbonoModal}>Cancelar</Button>
                         </DialogFooter>
                       </form>
