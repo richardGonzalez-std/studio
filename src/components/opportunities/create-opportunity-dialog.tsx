@@ -157,14 +157,31 @@ export function CreateOpportunityDialog({
             assigned_to_id: selectedPerson.assigned_to_id
         };
 
+        if (!body.lead_cedula) {
+             toast({ title: "Error", description: "El registro seleccionado no tiene cédula.", variant: "destructive" });
+             setIsSaving(false);
+             return;
+        }
+
+        console.log("Sending opportunity payload:", body);
+
         await api.post('/api/opportunities', body);
         toast({ title: "Creado", description: "Oportunidad creada correctamente." });
 
         onOpenChange(false);
         if (onSuccess) onSuccess();
-      } catch (error) {
-          console.error("Error saving:", error);
-          toast({ title: "Error", description: "No se pudo guardar la oportunidad.", variant: "destructive" });
+      } catch (error: any) {
+          console.error("Error saving opportunity:", error);
+          if (error.response?.data?.errors) {
+              console.error("Validation errors:", error.response.data.errors);
+              toast({ 
+                  title: "Error de validación", 
+                  description: Object.values(error.response.data.errors).flat().join(", "), 
+                  variant: "destructive" 
+              });
+          } else {
+              toast({ title: "Error", description: "No se pudo guardar la oportunidad.", variant: "destructive" });
+          }
       } finally {
           setIsSaving(false);
       }
