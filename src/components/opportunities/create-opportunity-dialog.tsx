@@ -45,23 +45,14 @@ interface CreateOpportunityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
-  leads: Lead[];
+  leads: any[]; // Usamos any para permitir Lead o Client
   defaultLeadId?: string;
+  contextType?: 'lead' | 'client';
 }
 
 const createOpportunitySchema = z.object({
-  leadId: z.string().min(1, "Debes seleccionar un lead"),
-  vertical: z.string(),
-  opportunityType: z.string(),
-  status: z.string(),
-  amount: z.coerce.number().min(0, "El monto debe ser positivo"),
-  expectedCloseDate: z.string().optional().refine((date) => {
-    if (!date) return true;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return new Date(date) >= today;
-  }, { message: "La fecha no puede ser anterior a hoy" }),
-  comments: z.string().optional(),
+  leadId: z.string().min(1, "Debes seleccionar un registro"),
+// ... (rest of schema)
 });
 
 type CreateOpportunityFormValues = z.infer<typeof createOpportunitySchema>;
@@ -72,6 +63,7 @@ export function CreateOpportunityDialog({
   onSuccess,
   leads,
   defaultLeadId,
+  contextType = 'lead',
 }: CreateOpportunityDialogProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -94,9 +86,6 @@ export function CreateOpportunityDialog({
       comments: "",
     },
   });
-
-  // Detectar si es lead o cliente por props
-  const isLeadContext = leads && leads.length > 0;
 
   // Reset form cuando se abre el diálogo
   useEffect(() => {
@@ -121,17 +110,17 @@ export function CreateOpportunityDialog({
       setCheckingDocs(true);
       setHasDocuments(null);
       let cedula = "";
-      if (isLeadContext) {
-        const selectedLead = leads.find(l => String(l.id) === currentLeadId);
-        cedula = selectedLead?.cedula || "";
-      }
+      
+      const selectedPerson = leads.find(l => String(l.id) === currentLeadId);
+      cedula = selectedPerson?.cedula || "";
+      
       if (!cedula) {
         setHasDocuments(false);
         setCheckingDocs(false);
         return;
       }
       try {
-        const url = isLeadContext
+        const url = contextType === 'lead'
           ? `/api/leads/check-cedula-folder?cedula=${cedula}`
           : `/api/clients/check-cedula-folder?cedula=${cedula}`;
         const res = await api.get(url);
@@ -144,28 +133,28 @@ export function CreateOpportunityDialog({
     };
     if (currentLeadId) checkDocs();
     else setHasDocuments(false);
-  }, [currentLeadId, leads, isLeadContext]);
+  }, [currentLeadId, leads, contextType]);
 
   const onSubmit = async (values: CreateOpportunityFormValues) => {
       setIsSaving(true);
 
       try {
-        const selectedLead = leads.find(l => String(l.id) === values.leadId);
-        if (!selectedLead) {
-            toast({ title: "Error", description: "Lead no válido.", variant: "destructive" });
+        const selectedPerson = leads.find(l => String(l.id) === values.leadId);
+        if (!selectedPerson) {
+            toast({ title: "Error", description: "Registro no válido.", variant: "destructive" });
             setIsSaving(false);
             return;
         }
 
         const body: any = {
-            lead_cedula: selectedLead.cedula,
+            lead_cedula: selectedPerson.cedula,
             vertical: values.vertical,
             opportunity_type: values.opportunityType,
             status: values.status,
             amount: values.amount || 0,
             expected_close_date: values.expectedCloseDate || null,
             comments: values.comments,
-            assigned_to_id: selectedLead.assigned_to_id
+            assigned_to_id: selectedPerson.assigned_to_id
         };
 
         await api.post('/api/opportunities', body);

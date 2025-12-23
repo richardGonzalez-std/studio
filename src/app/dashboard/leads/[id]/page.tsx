@@ -890,6 +890,7 @@ export default function LeadDetailPage() {
                 onOpenChange={setIsOpportunityDialogOpen}
                 leads={lead ? [lead] : []}
                 defaultLeadId={lead ? String(lead.id) : undefined}
+                contextType="lead"
                 onSuccess={() => window.location.reload()}
             />
         </div>

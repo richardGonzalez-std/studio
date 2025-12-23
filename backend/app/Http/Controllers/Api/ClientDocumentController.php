@@ -14,7 +14,7 @@ class ClientDocumentController extends Controller
     public function checkCedulaFolder(Request $request)
 {
         $request->validate([
-            'cedula' => 'required|string|min:9|max:20',
+            'cedula' => 'required|string|max:20',
         ]);
 
         $cedula = preg_replace('/[^0-9]/', '', $request->input('cedula'));
