@@ -217,22 +217,42 @@ export default function CalculosPage() {
   };
 
   /**
-   * Simula el envío de la cotización a un lead y muestra una notificación.
+   * Envía la cotización a un lead por email o comunicaciones.
    * @param {'comunicaciones' | 'email'} method - El método de envío.
    */
-  const handleSendQuote = (method: 'comunicaciones' | 'email') => {
+  const handleSendQuote = async (method: 'comunicaciones' | 'email') => {
     const lead = leads.find(l => l.id === selectedLead);
     if (!lead || !monthlyPayment) return;
 
-    // $$$ CONECTOR: Aquí se integraría la lógica para enviar el mensaje por el sistema de comunicaciones o por email.
-    console.log(`Enviando cotización a ${lead.name} via ${method}.`);
-    
-    // Muestra una notificación de éxito.
-    toast({
-      title: "Cotización Enviada",
-      description: `La cotización ha sido enviada a ${lead.name} por ${method === 'email' ? 'correo electrónico' : 'el sistema de comunicaciones'}.`,
-      duration: 4000,
-    });
+    try {
+      const response = await api.post('/api/quotes/send', {
+        lead_id: lead.id,
+        lead_name: lead.name,
+        lead_email: lead.email,
+        amount: parseFloat(amount),
+        rate: parseFloat(rate),
+        term: parseInt(term, 10),
+        monthly_payment: monthlyPayment,
+        credit_type: creditType,
+        method: method,
+      });
+
+      if (response.data.success) {
+        toast({
+          title: "Cotización Enviada",
+          description: response.data.message || `La cotización ha sido enviada a ${lead.name} por ${method === 'email' ? 'correo electrónico' : 'el sistema de comunicaciones'}.`,
+          duration: 4000,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error enviando cotización:', error);
+      toast({
+        title: "Error al enviar",
+        description: error?.response?.data?.message || "No se pudo enviar la cotización. Por favor intenta de nuevo.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
   };
 
   return (

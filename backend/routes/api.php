@@ -81,6 +81,9 @@ Route::apiResource('credit-payments', CreditPaymentController::class);
 Route::post('credit-payments/upload', [CreditPaymentController::class, 'upload']);
 Route::post('credit-payments/adelanto', [CreditPaymentController::class, 'adelanto']);
 
+// Cotizaciones
+Route::post('quotes/send', [\App\Http\Controllers\Api\QuoteController::class, 'sendQuote']);
+
 // Analisis CRUD
 Route::apiResource('analisis', \App\Http\Controllers\Api\AnalisisController::class);
 
